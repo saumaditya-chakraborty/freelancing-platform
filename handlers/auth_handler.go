@@ -1,0 +1,47 @@
+package handlers
+
+import (
+	"freelancing-platform/models"
+	"freelancing-platform/utils"
+
+	"github.com/gofiber/fiber/v2"
+)
+
+func Login(c *fiber.Ctx) error {
+
+	var loginData models.LoginRequest
+
+	if err := c.BodyParser(&loginData); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "invalid request body",
+		})
+	}
+
+	for _, user := range Users {
+
+		if user.Email == loginData.Email &&
+			utils.CheckPassword(
+				loginData.Password,
+				user.Password,
+			) {
+			
+			token, err := utils.GenerateToken(user.Email , user.Role)
+
+if err != nil {
+	return c.Status(500).JSON(fiber.Map{
+		"error": "could not generate token",
+	})
+}
+
+return c.JSON(fiber.Map{
+	"message": "login successful",
+	"token": token,
+})
+			
+		}
+	}
+
+	return c.Status(401).JSON(fiber.Map{
+		"error": "invalid credentials",
+	})
+}

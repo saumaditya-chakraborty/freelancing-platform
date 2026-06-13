@@ -1,18 +1,22 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	"freelancing-platform/routes"
+	
+
+	"github.com/gofiber/fiber/v2"
 )
 
-func home(w http.ResponseWriter , r *http.Request) {
-	  fmt.Fprintln(w, "Welcome to Freelancing Platform")
-}
-
 func main() {
-	http.HandleFunc("/" , home)
 
-	fmt.Println("Server running on port 8080")
+	app := fiber.New()
 
-	http.ListenAndServe(":8080" , nil)
+	routes.SetupUserRoutes(app)
+	routes.SetupProjectRoutes(app)
+	routes.SetupProposalRoutes(app)
+	routes.SetupAuthRoutes(app)
+
+	if err := app.Listen(":3000"); err != nil {
+		panic(err)
+	}
 }
