@@ -1,16 +1,16 @@
 package handlers
 
 import (
-	"strconv" // used for strring to number conversion 
+	"strconv"
 
+	"freelancing-platform/config"
 	"freelancing-platform/models"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-var Projects []models.Project
-
 func CreateProject(c *fiber.Ctx) error {
+
 	var project models.Project
 
 	if err := c.BodyParser(&project); err != nil {
@@ -19,16 +19,30 @@ func CreateProject(c *fiber.Ctx) error {
 		})
 	}
 
-	Projects = append(Projects, project)
+	if err := config.DB.Create(&project).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to create project",
+		})
+	}
 
 	return c.Status(201).JSON(project)
 }
 
 func GetProjects(c *fiber.Ctx) error {
-	return c.JSON(Projects)
+
+	var projects []models.Project
+
+	if err := config.DB.Find(&projects).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to fetch projects",
+		})
+	}
+
+	return c.JSON(projects)
 }
 
 func GetProjectByID(c *fiber.Ctx) error {
+
 	id, err := strconv.Atoi(c.Params("id"))
 
 	if err != nil {
@@ -37,18 +51,19 @@ func GetProjectByID(c *fiber.Ctx) error {
 		})
 	}
 
-	for _, project := range Projects {
-		if project.ID == id {
-			return c.JSON(project)
-		}
+	var project models.Project
+
+	if err := config.DB.First(&project, id).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{
+			"error": "project not found",
+		})
 	}
 
-	return c.Status(404).JSON(fiber.Map{
-		"error": "project not found",
-	})
+	return c.JSON(project)
 }
 
 func UpdateProject(c *fiber.Ctx) error {
+
 	id, err := strconv.Atoi(c.Params("id"))
 
 	if err != nil {
@@ -65,19 +80,30 @@ func UpdateProject(c *fiber.Ctx) error {
 		})
 	}
 
-	for i, project := range Projects {
-		if project.ID == id {
-			Projects[i] = updatedProject
-			return c.JSON(updatedProject)
-		}
+	var project models.Project
+
+	if err := config.DB.First(&project, id).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{
+			"error": "project not found",
+		})
 	}
 
-	return c.Status(404).JSON(fiber.Map{
-		"error": "project not found",
-	})
+	project.Title = updatedProject.Title
+	project.Description = updatedProject.Description
+	project.Budget = updatedProject.Budget
+	project.ClientID = updatedProject.ClientID
+
+	if err := config.DB.Save(&project).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to update project",
+		})
+	}
+
+	return c.JSON(project)
 }
 
 func DeleteProject(c *fiber.Ctx) error {
+
 	id, err := strconv.Atoi(c.Params("id"))
 
 	if err != nil {
@@ -86,17 +112,21 @@ func DeleteProject(c *fiber.Ctx) error {
 		})
 	}
 
-	for i, project := range Projects {
-		if project.ID == id {
-			Projects = append(Projects[:i], Projects[i+1:]...)
+	var project models.Project
 
-			return c.JSON(fiber.Map{
-				"message": "project deleted",
-			})
-		}
+	if err := config.DB.First(&project, id).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{
+			"error": "project not found",
+		})
 	}
 
-	return c.Status(404).JSON(fiber.Map{
-		"error": "project not found",
+	if err := config.DB.Delete(&project).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to delete project",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "project deleted",
 	})
 }

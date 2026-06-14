@@ -3,14 +3,14 @@ package handlers
 import (
 	"strconv"
 
+	"freelancing-platform/config"
 	"freelancing-platform/models"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-var Proposals []models.Proposal
-
 func CreateProposal(c *fiber.Ctx) error {
+
 	var proposal models.Proposal
 
 	if err := c.BodyParser(&proposal); err != nil {
@@ -19,16 +19,30 @@ func CreateProposal(c *fiber.Ctx) error {
 		})
 	}
 
-	Proposals = append(Proposals, proposal)
+	if err := config.DB.Create(&proposal).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to create proposal",
+		})
+	}
 
 	return c.Status(201).JSON(proposal)
 }
 
 func GetProposals(c *fiber.Ctx) error {
-	return c.JSON(Proposals)
+
+	var proposals []models.Proposal
+
+	if err := config.DB.Find(&proposals).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to fetch proposals",
+		})
+	}
+
+	return c.JSON(proposals)
 }
 
 func GetProposalByID(c *fiber.Ctx) error {
+
 	id, err := strconv.Atoi(c.Params("id"))
 
 	if err != nil {
@@ -37,18 +51,19 @@ func GetProposalByID(c *fiber.Ctx) error {
 		})
 	}
 
-	for _, proposal := range Proposals {
-		if proposal.ID == id {
-			return c.JSON(proposal)
-		}
+	var proposal models.Proposal
+
+	if err := config.DB.First(&proposal, id).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{
+			"error": "proposal not found",
+		})
 	}
 
-	return c.Status(404).JSON(fiber.Map{
-		"error": "proposal not found",
-	})
+	return c.JSON(proposal)
 }
 
 func UpdateProposal(c *fiber.Ctx) error {
+
 	id, err := strconv.Atoi(c.Params("id"))
 
 	if err != nil {
@@ -65,19 +80,30 @@ func UpdateProposal(c *fiber.Ctx) error {
 		})
 	}
 
-	for i, proposal := range Proposals {
-		if proposal.ID == id {
-			Proposals[i] = updatedProposal
-			return c.JSON(updatedProposal)
-		}
+	var proposal models.Proposal
+
+	if err := config.DB.First(&proposal, id).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{
+			"error": "proposal not found",
+		})
 	}
 
-	return c.Status(404).JSON(fiber.Map{
-		"error": "proposal not found",
-	})
+	proposal.ProjectID = updatedProposal.ProjectID
+	proposal.FreelancerID = updatedProposal.FreelancerID
+	proposal.Message = updatedProposal.Message
+	proposal.BidAmount = updatedProposal.BidAmount
+
+	if err := config.DB.Save(&proposal).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to update proposal",
+		})
+	}
+
+	return c.JSON(proposal)
 }
 
 func DeleteProposal(c *fiber.Ctx) error {
+
 	id, err := strconv.Atoi(c.Params("id"))
 
 	if err != nil {
@@ -86,17 +112,21 @@ func DeleteProposal(c *fiber.Ctx) error {
 		})
 	}
 
-	for i, proposal := range Proposals {
-		if proposal.ID == id {
-			Proposals = append(Proposals[:i], Proposals[i+1:]...)
+	var proposal models.Proposal
 
-			return c.JSON(fiber.Map{
-				"message": "proposal deleted",
-			})
-		}
+	if err := config.DB.First(&proposal, id).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{
+			"error": "proposal not found",
+		})
 	}
 
-	return c.Status(404).JSON(fiber.Map{
-		"error": "proposal not found",
+	if err := config.DB.Delete(&proposal).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to delete proposal",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "proposal deleted",
 	})
 }

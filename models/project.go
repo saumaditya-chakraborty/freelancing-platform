@@ -1,9 +1,9 @@
 package models
-// igve image 
+
 type Project struct {
-	ID          int     `json:"id"`
-	Title       string  `json:"title"`
-	Description string  `json:"description"`
-	Budget      float64 `json:"budget"`
-	ClientID    int     `json:"client_id"`
+	ID          uint   `json:"id" gorm:"primaryKey"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Budget      int    `json:"budget"`
+	ClientID    uint   `json:"client_id"`
 }

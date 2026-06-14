@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"freelancing-platform/config"
 	"freelancing-platform/models"
 	"freelancing-platform/utils"
 
@@ -17,31 +18,40 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	for _, user := range Users {
+	var user models.User
 
-		if user.Email == loginData.Email &&
-			utils.CheckPassword(
-				loginData.Password,
-				user.Password,
-			) {
-			
-			token, err := utils.GenerateToken(user.Email , user.Role)
+	if err := config.DB.Where(
+		"email = ?",
+		loginData.Email,
+	).First(&user).Error; err != nil {
 
-if err != nil {
-	return c.Status(500).JSON(fiber.Map{
-		"error": "could not generate token",
-	})
-}
-
-return c.JSON(fiber.Map{
-	"message": "login successful",
-	"token": token,
-})
-			
-		}
+		return c.Status(401).JSON(fiber.Map{
+			"error": "invalid credentials",
+		})
 	}
 
-	return c.Status(401).JSON(fiber.Map{
-		"error": "invalid credentials",
+	if !utils.CheckPassword(
+		loginData.Password,
+		user.Password,
+	) {
+		return c.Status(401).JSON(fiber.Map{
+			"error": "invalid credentials",
+		})
+	}
+
+	token, err := utils.GenerateToken(
+		user.Email,
+		user.Role,
+	)
+
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "could not generate token",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "login successful",
+		"token":   token,
 	})
 }
