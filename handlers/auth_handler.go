@@ -40,6 +40,7 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	token, err := utils.GenerateToken(
+		user.ID,
 		user.Email,
 		user.Role,
 	)

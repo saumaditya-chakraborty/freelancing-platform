@@ -19,6 +19,9 @@ func CreateProject(c *fiber.Ctx) error {
 		})
 	}
 
+	// default business rule
+	project.Status = "open"
+
 	if err := config.DB.Create(&project).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"error": "failed to create project",

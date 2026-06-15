@@ -40,6 +40,7 @@ func Protected() fiber.Handler {
 
 		claims := token.Claims.(jwt.MapClaims)
 
+		c.Locals("userID", uint(claims["id"].(float64)))
 		c.Locals("email", claims["email"])
 		c.Locals("role", claims["role"])
 

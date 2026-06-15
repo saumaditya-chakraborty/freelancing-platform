@@ -6,4 +6,5 @@ type Project struct {
 	Description string `json:"description"`
 	Budget      int    `json:"budget"`
 	ClientID    uint   `json:"client_id"`
+	Status      string `json:"status"`
 }
