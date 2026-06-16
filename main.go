@@ -25,13 +25,9 @@ func main() {
 		&models.User{},
 		&models.Project{},
 		&models.Proposal{},
-		&models.Milestone{},
-		&models.Review{},
-		&models.Dispute{},
+	
 
-		// ✅ PHASE 1 ADDITIONS
-		&models.Wallet{},
-		&models.Transaction{},
+
 	)
 
 	if err != nil {
@@ -56,8 +52,7 @@ func main() {
 	routes.SetupProjectRoutes(app)
 	routes.SetupProposalRoutes(app)
 	routes.SetupAuthRoutes(app)
-	routes.SetupMarketplaceRoutes(app)
-	routes.SetupWalletRoutes(app)
+
 
 	// 5. Health Check (optional but good practice)
 	app.Get("/health", func(c *fiber.Ctx) error {
