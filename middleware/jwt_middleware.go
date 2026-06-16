@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"freelancing-platform/utils"
 	"strings"
 
@@ -28,6 +29,9 @@ func Protected() fiber.Handler {
 		token, err := jwt.Parse(
 			tokenString,
 			func(token *jwt.Token) (interface{}, error) {
+				if token.Method.Alg() != jwt.SigningMethodHS256.Alg() {
+					return nil, fmt.Errorf("unexpected signing method")
+				}
 				return utils.SecretKey, nil
 			},
 		)
@@ -38,9 +42,21 @@ func Protected() fiber.Handler {
 			})
 		}
 
-		claims := token.Claims.(jwt.MapClaims)
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			return c.Status(401).JSON(fiber.Map{
+				"error": "invalid token claims",
+			})
+		}
 
-		c.Locals("userID", uint(claims["id"].(float64)))
+		id, ok := claims["id"].(float64)
+		if !ok {
+			return c.Status(401).JSON(fiber.Map{
+				"error": "invalid token claims",
+			})
+		}
+
+		c.Locals("userID", uint(id))
 		c.Locals("email", claims["email"])
 		c.Locals("role", claims["role"])
 

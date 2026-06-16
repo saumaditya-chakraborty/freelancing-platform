@@ -6,4 +6,6 @@ type Proposal struct {
 	FreelancerID uint   `json:"freelancer_id"`
 	Message      string `json:"message"`
 	BidAmount    int    `json:"bid_amount"`
+
+	Status       string `json:"status" gorm:"type:varchar(50);default:'pending'"`
 }

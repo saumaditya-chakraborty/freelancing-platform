@@ -12,6 +12,7 @@ import (
 func CreateProject(c *fiber.Ctx) error {
 
 	var project models.Project
+	clientID, _ := c.Locals("userID").(uint)
 
 	if err := c.BodyParser(&project); err != nil {
 		return c.Status(400).JSON(fiber.Map{
@@ -20,6 +21,7 @@ func CreateProject(c *fiber.Ctx) error {
 	}
 
 	// default business rule
+	project.ClientID = clientID
 	project.Status = "open"
 
 	if err := config.DB.Create(&project).Error; err != nil {
@@ -61,7 +63,6 @@ func GetProjectByID(c *fiber.Ctx) error {
 			"error": "project not found",
 		})
 	}
-
 	return c.JSON(project)
 }
 
@@ -84,17 +85,22 @@ func UpdateProject(c *fiber.Ctx) error {
 	}
 
 	var project models.Project
+	clientID, _ := c.Locals("userID").(uint)
 
 	if err := config.DB.First(&project, id).Error; err != nil {
 		return c.Status(404).JSON(fiber.Map{
 			"error": "project not found",
 		})
 	}
+	if project.ClientID != clientID {
+		return c.Status(403).JSON(fiber.Map{
+			"error": "not your project",
+		})
+	}
 
 	project.Title = updatedProject.Title
 	project.Description = updatedProject.Description
 	project.Budget = updatedProject.Budget
-	project.ClientID = updatedProject.ClientID
 
 	if err := config.DB.Save(&project).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{
@@ -116,10 +122,16 @@ func DeleteProject(c *fiber.Ctx) error {
 	}
 
 	var project models.Project
+	clientID, _ := c.Locals("userID").(uint)
 
 	if err := config.DB.First(&project, id).Error; err != nil {
 		return c.Status(404).JSON(fiber.Map{
 			"error": "project not found",
+		})
+	}
+	if project.ClientID != clientID {
+		return c.Status(403).JSON(fiber.Map{
+			"error": "not your project",
 		})
 	}
 
