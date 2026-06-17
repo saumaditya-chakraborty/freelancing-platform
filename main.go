@@ -25,6 +25,10 @@ func main() {
 		&models.User{},
 		&models.Project{},
 		&models.Proposal{},
+		&models.Message{},
+		&models.Milestone{},
+		&models.Payment{},
+		&models.Review{},
 	
 
 
@@ -36,10 +40,10 @@ func main() {
 
 	log.Println("All schemas synced successfully")
 
-	// 3. Initialize Fiber App
+	
 	app := fiber.New()
 
-	// Global Middleware
+
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001",
@@ -47,14 +51,19 @@ func main() {
 		AllowMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
 	}))
 
-	// 4. Routes
+
 	routes.SetupUserRoutes(app)
 	routes.SetupProjectRoutes(app)
 	routes.SetupProposalRoutes(app)
 	routes.SetupAuthRoutes(app)
+	routes.MessageRoutes(app)
+	routes.SetupMilestoneRoutes(app)
+	routes.SetupPaymentRoutes(app)
+	routes.SetupReviewRoutes(app)
+	routes.SetupAdminRoutes(app)
 
 
-	// 5. Health Check (optional but good practice)
+	
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"status":  "ok",
@@ -62,7 +71,7 @@ func main() {
 		})
 	})
 
-	// 6. Start Server
+	
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
