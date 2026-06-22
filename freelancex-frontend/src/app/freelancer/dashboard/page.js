@@ -3,17 +3,18 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-export default function ClientDashboard() {
+export default function FreelancerDashboard() {
   const [loading, setLoading] = useState(true);
 
   const [dashboardData, setDashboardData] = useState({
     stats: {
-      projectsPosted: 0,
-      activeHires: 0,
-      openProposals: 0,
-      escrowBalance: 0,
+      activeProjects: 0,
+      submittedBids: 0,
+      completedProjects: 0,
+      totalEarnings: 0,
     },
     projects: [],
+    proposals: [],
     user: null,
   });
 
@@ -29,51 +30,65 @@ export default function ClientDashboard() {
         localStorage.getItem("user") || "{}"
       );
 
-      const [projectsRes, proposalsRes] = await Promise.all([
-        fetch("http://localhost:8080/projects", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }),
-        fetch("http://localhost:8080/proposals", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }),
-      ]);
+      const [projectsRes, proposalsRes] =
+        await Promise.all([
+          fetch("http://localhost:8080/projects", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+
+          fetch("http://localhost:8080/proposals", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+        ]);
 
       const projects = await projectsRes.json();
       const proposals = await proposalsRes.json();
 
-      const myProjects = projects.filter(
-        (project) => project.client_id === storedUser.id
+      const myProposals = proposals.filter(
+  (proposal) =>
+    proposal.FreelancerID === storedUser.id
+);
+      const activeProjects = projects.filter(
+        (project) =>
+          project.status === "in_progress"
       );
 
-      const activeHires = myProjects.filter(
-        (project) => project.status === "in_progress"
-      ).length;
-
-      const openProposals = proposals.filter(
-        (proposal) => proposal.status === "pending"
-      ).length;
-
-      const totalBudget = myProjects.reduce(
-        (sum, project) => sum + (project.budget || 0),
-        0
+      const completedProjects = projects.filter(
+        (project) =>
+          project.status === "completed"
       );
+
+      const earnings =
+        completedProjects.reduce(
+          (sum, project) =>
+            sum + (project.budget || 0),
+          0
+        );
 
       setDashboardData({
         user: storedUser,
-        projects: myProjects,
+        projects: activeProjects,
+        proposals: myProposals,
+
         stats: {
-          projectsPosted: myProjects.length,
-          activeHires,
-          openProposals,
-          escrowBalance: totalBudget,
+          activeProjects:
+            activeProjects.length,
+
+          submittedBids:
+            myProposals.length,
+
+          completedProjects:
+            completedProjects.length,
+
+          totalEarnings: earnings,
         },
       });
     } catch (error) {
-      console.error("Dashboard Error:", error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -89,89 +104,122 @@ export default function ClientDashboard() {
 
   return (
     <main className="min-h-screen bg-black text-white overflow-hidden">
+
       {/* Background */}
+
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_top,#2563eb_0%,#0f172a_35%,#000000_75%)]" />
 
       {/* Navbar */}
-      <nav className="relative z-10 flex items-center justify-between px-8 py-6 border-b border-white/10 backdrop-blur-md">
-               <h1 className="text-5xl font-black tracking-wide">
-  <span
-    style={{
-      color: "cyan",
-    }}
-  >
-    Freelance
-  </span>
 
-  <span
-    className="text-white"
-  >
-    X
-  </span>
-</h1>
+      <nav className="relative z-10 flex items-center justify-between px-8 py-6 border-b border-white/10 backdrop-blur-md">
+
+        <h1 className="text-3xl font-black tracking-wide">
+          Freelance
+          <span
+            className="text-[#1424ff]"
+            style={{
+              textShadow:
+                "0 0 12px #1424ff",
+            }}
+          >
+            X
+          </span>
+        </h1>
 
         <div className="flex gap-4 items-center">
+
           <button className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/10 transition">
             Notifications
           </button>
 
           <div className="h-11 w-11 rounded-full bg-[#1424ff] flex items-center justify-center font-bold">
-            {dashboardData.user?.name?.charAt(0)?.toUpperCase() || "C"}
+            {dashboardData.user?.name
+              ?.charAt(0)
+              ?.toUpperCase() || "F"}
           </div>
+
         </div>
+
       </nav>
 
       {/* Welcome */}
+
       <section className="relative z-10 px-8 pt-12">
+
         <div className="max-w-7xl mx-auto">
+
           <h2 className="text-5xl font-black">
-            Welcome Back, { "Client"}
+            Welcome Back,
+            {" "}
+            {dashboardData.user?.name ||
+              "Freelancer"}
           </h2>
 
           <p className="mt-4 text-gray-300 text-lg">
-            Manage projects, freelancers, milestones and payments from one dashboard.
+            Manage bids, projects,
+            earnings and communication.
           </p>
+
         </div>
+
       </section>
 
       {/* Stats */}
+
       <section className="relative z-10 px-8 mt-10">
+
         <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-6">
 
           <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-xl">
-            <h3 className="text-gray-400">Projects Posted</h3>
+            <h3 className="text-gray-400">
+              Active Projects
+            </h3>
+
             <p className="text-5xl font-black mt-3 text-[#1424ff]">
-              {dashboardData.stats.projectsPosted}
+              {dashboardData.stats.activeProjects}
             </p>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-xl">
-            <h3 className="text-gray-400">Active Hires</h3>
+            <h3 className="text-gray-400">
+              Submitted Bids
+            </h3>
+
             <p className="text-5xl font-black mt-3 text-[#1424ff]">
-              {dashboardData.stats.activeHires}
+              {dashboardData.stats.submittedBids}
             </p>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-xl">
-            <h3 className="text-gray-400">Open Proposals</h3>
+            <h3 className="text-gray-400">
+              Completed Projects
+            </h3>
+
             <p className="text-5xl font-black mt-3 text-[#1424ff]">
-              {dashboardData.stats.openProposals}
+              {dashboardData.stats.completedProjects}
             </p>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-xl">
-            <h3 className="text-gray-400">Total Budget</h3>
+            <h3 className="text-gray-400">
+              Total Earnings
+            </h3>
+
             <p className="text-5xl font-black mt-3 text-[#1424ff]">
-              ₹{dashboardData.stats.escrowBalance}
+              ₹{dashboardData.stats.totalEarnings}
             </p>
           </div>
 
         </div>
+
       </section>
 
       {/* Workspace */}
+
       <section className="relative z-10 px-8 mt-12">
+
         <div className="max-w-7xl mx-auto">
+
           <h2 className="text-3xl font-black mb-8">
             Workspace
           </h2>
@@ -179,46 +227,46 @@ export default function ClientDashboard() {
           <div className="grid md:grid-cols-4 gap-6">
 
             <Link
-              href="/client/post-project"
+              href="/freelancer/projects"
               className="bg-white/5 border border-white/10 rounded-3xl p-8 hover:scale-105 transition"
             >
               <h3 className="text-xl font-bold">
-                Post Project
+                Browse Projects
               </h3>
 
               <p className="mt-3 text-gray-400">
-                Create a new project.
+                Find available jobs.
               </p>
             </Link>
 
             <Link
-              href="/client/projects"
+              href="/freelancer/bids"
               className="bg-white/5 border border-white/10 rounded-3xl p-8 hover:scale-105 transition"
             >
               <h3 className="text-xl font-bold">
-                Projects
+                My Bids
               </h3>
 
               <p className="mt-3 text-gray-400">
-                Manage all projects.
+                Track proposals.
               </p>
             </Link>
 
             <Link
-              href="/client/payments"
+              href="/freelancer/earnings"
               className="bg-white/5 border border-white/10 rounded-3xl p-8 hover:scale-105 transition"
             >
               <h3 className="text-xl font-bold">
-                Payments
+                Earnings
               </h3>
 
               <p className="mt-3 text-gray-400">
-                Release milestone payments.
+                View payments.
               </p>
             </Link>
 
             <Link
-              href="/client/messages"
+              href="/freelancer/messages"
               className="bg-white/5 border border-white/10 rounded-3xl p-8 hover:scale-105 transition"
             >
               <h3 className="text-xl font-bold">
@@ -226,63 +274,76 @@ export default function ClientDashboard() {
               </h3>
 
               <p className="mt-3 text-gray-400">
-                Chat with freelancers.
+                Chat with clients.
               </p>
             </Link>
 
           </div>
+
         </div>
+
       </section>
 
-      {/* Projects */}
+      {/* Active Projects */}
+
       <section className="relative z-10 px-8 py-14">
+
         <div className="max-w-7xl mx-auto">
 
           <h2 className="text-3xl font-black mb-8">
-            My Projects
+            Active Projects
           </h2>
 
           <div className="space-y-5">
 
-            {dashboardData.projects.length > 0 ? (
-              dashboardData.projects.map((project) => (
-                <div
-                  key={project.id}
-                  className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl"
-                >
-                  <div className="flex justify-between items-center">
+            {dashboardData.projects.length >
+            0 ? (
+              dashboardData.projects.map(
+                (project) => (
+                  <div
+                    key={project.id}
+                    className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl"
+                  >
+                    <div className="flex justify-between items-center">
 
-                    <div>
-                      <h3 className="text-xl font-bold">
-                        {project.title}
-                      </h3>
+                      <div>
 
-                      <p className="text-gray-400">
-                        {project.description}
-                      </p>
+                        <h3 className="text-xl font-bold">
+                          {project.title}
+                        </h3>
+
+                        <p className="text-gray-400">
+                          {
+                            project.description
+                          }
+                        </p>
+
+                      </div>
+
+                      <span className="px-4 py-2 rounded-xl bg-blue-500/20 text-blue-400">
+                        {project.status}
+                      </span>
+
                     </div>
-
-                    <span className="px-4 py-2 rounded-xl bg-blue-500/20 text-blue-400">
-                      {project.status}
-                    </span>
-
                   </div>
-                </div>
-              ))
+                )
+              )
             ) : (
               <div className="bg-white/5 border border-white/10 rounded-2xl p-10 text-center text-gray-400">
-                No projects found.
+                No active projects.
               </div>
             )}
 
           </div>
 
         </div>
+
       </section>
 
       <footer className="relative z-10 border-t border-white/10 py-6 text-center text-gray-500">
-        © 2026 FreelanceX
+        © 2026 FreelanceX 
       </footer>
+
     </main>
   );
 }

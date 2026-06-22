@@ -8,9 +8,9 @@ import (
 
 func SetupProposalRoutes(app *fiber.App) {
 
-	app.Get("/proposals", handlers.GetProposals)
+	app.Get("/proposals",middleware.Protected(), handlers.GetProposals)
 
-	app.Get("/proposals/:id", handlers.GetProposalByID)
+	app.Get("/proposals/:id",middleware.Protected(), handlers.GetProposalByID)
 
 	app.Post(
 		"/proposals",

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"strconv"
-
 	"freelancing-platform/config"
 	"freelancing-platform/models"
 
@@ -12,11 +11,31 @@ import (
 func CreateProposal(c *fiber.Ctx) error {
 
 	var proposal models.Proposal
+
 	freelancerID, _ := c.Locals("userID").(uint)
 
 	if err := c.BodyParser(&proposal); err != nil {
 		return c.Status(400).JSON(fiber.Map{
 			"error": "invalid request body",
+		})
+	}
+
+	
+
+	// prevent duplicate bids
+	var existing models.Proposal
+
+	err := config.DB.
+		Where(
+			"project_id = ? AND freelancer_id = ?",
+			proposal.ProjectID,
+			freelancerID,
+		).
+		First(&existing).Error
+
+	if err == nil {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "you already submitted a proposal",
 		})
 	}
 
@@ -29,7 +48,11 @@ func CreateProposal(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(201).JSON(proposal)
+	// DEBUG RESPONSE
+	return c.Status(201).JSON(fiber.Map{
+		"DEBUG":    "NEW_HANDLER",
+		"proposal": proposal,
+	})
 }
 
 func GetProposals(c *fiber.Ctx) error {
@@ -85,6 +108,7 @@ func UpdateProposal(c *fiber.Ctx) error {
 	}
 
 	var proposal models.Proposal
+
 	freelancerID, _ := c.Locals("userID").(uint)
 
 	if err := config.DB.First(&proposal, id).Error; err != nil {
@@ -92,14 +116,16 @@ func UpdateProposal(c *fiber.Ctx) error {
 			"error": "proposal not found",
 		})
 	}
+
 	if proposal.FreelancerID != freelancerID {
 		return c.Status(403).JSON(fiber.Map{
 			"error": "not your proposal",
 		})
 	}
 
-	proposal.Message = updatedProposal.Message
 	proposal.BidAmount = updatedProposal.BidAmount
+	proposal.CoverLetter = updatedProposal.CoverLetter
+	proposal.DeliveryDays = updatedProposal.DeliveryDays
 
 	if err := config.DB.Save(&proposal).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{
@@ -121,6 +147,7 @@ func DeleteProposal(c *fiber.Ctx) error {
 	}
 
 	var proposal models.Proposal
+
 	freelancerID, _ := c.Locals("userID").(uint)
 
 	if err := config.DB.First(&proposal, id).Error; err != nil {
@@ -128,6 +155,7 @@ func DeleteProposal(c *fiber.Ctx) error {
 			"error": "proposal not found",
 		})
 	}
+
 	if proposal.FreelancerID != freelancerID {
 		return c.Status(403).JSON(fiber.Map{
 			"error": "not your proposal",
@@ -143,61 +171,83 @@ func DeleteProposal(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message": "proposal deleted",
 	})
-
 }
 
 func AcceptProposal(c *fiber.Ctx) error {
 
 	proposalID, err := strconv.Atoi(c.Params("id"))
+
 	if err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": "invalid id"})
+		return c.Status(400).JSON(fiber.Map{
+			"error": "invalid id",
+		})
 	}
 
 	clientID, _ := c.Locals("userID").(uint)
 
 	var proposal models.Proposal
+
 	if err := config.DB.First(&proposal, proposalID).Error; err != nil {
-		return c.Status(404).JSON(fiber.Map{"error": "proposal not found"})
+		return c.Status(404).JSON(fiber.Map{
+			"error": "proposal not found",
+		})
 	}
 
 	var project models.Project
+
 	if err := config.DB.First(&project, proposal.ProjectID).Error; err != nil {
-		return c.Status(404).JSON(fiber.Map{"error": "project not found"})
+		return c.Status(404).JSON(fiber.Map{
+			"error": "project not found",
+		})
 	}
 
 	if project.ClientID != clientID {
-		return c.Status(403).JSON(fiber.Map{"error": "not your project"})
+		return c.Status(403).JSON(fiber.Map{
+			"error": "not your project",
+		})
 	}
 
-	// 🔥 TRANSACTION START
 	tx := config.DB.Begin()
 
 	proposal.Status = "accepted"
 
 	if err := tx.Save(&proposal).Error; err != nil {
 		tx.Rollback()
-		return c.Status(500).JSON(fiber.Map{"error": "failed to accept proposal"})
+
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to accept proposal",
+		})
 	}
 
-	// reject others
 	if err := tx.Model(&models.Proposal{}).
-		Where("project_id = ? AND id != ?", proposal.ProjectID, proposal.ID).
+		Where(
+			"project_id = ? AND id != ?",
+			proposal.ProjectID,
+			proposal.ID,
+		).
 		Update("status", "rejected").Error; err != nil {
+
 		tx.Rollback()
-		return c.Status(500).JSON(fiber.Map{"error": "failed to reject others"})
+
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to reject other proposals",
+		})
 	}
 
-	// update project
 	if err := tx.Model(&models.Project{}).
 		Where("id = ?", project.ID).
 		Update("status", "in_progress").Error; err != nil {
+
 		tx.Rollback()
-		return c.Status(500).JSON(fiber.Map{"error": "failed to update project"})
+
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to update project",
+		})
 	}
 
 	tx.Commit()
 
 	return c.JSON(fiber.Map{
-		"message": "proposal accepted",
+		"message": "proposal accepted successfully",
 	})
 }

@@ -29,6 +29,8 @@ func main() {
 		&models.Milestone{},
 		&models.Payment{},
 		&models.Review{},
+		&models.Message{},
+		&models.Conversation{},
 	
 
 

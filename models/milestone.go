@@ -5,5 +5,7 @@ type Milestone struct {
 	ProjectID uint   `json:"project_id"`
 	Title     string `json:"title"`
 	Amount    int    `json:"amount"`
+
 	Status    string `json:"status"`
+	// pending → funded → submitted → approved → paid
 }
