@@ -11,7 +11,12 @@ func SetupProposalRoutes(app *fiber.App) {
 	app.Get("/proposals",middleware.Protected(), handlers.GetProposals)
 
 	app.Get("/proposals/:id",middleware.Protected(), handlers.GetProposalByID)
-
+    app.Get(
+	"/projects/:id/proposals",
+	middleware.Protected(),
+	middleware.RequireRole("client"),
+	handlers.GetProjectProposals,
+)
 	app.Post(
 		"/proposals",
 		middleware.Protected(),

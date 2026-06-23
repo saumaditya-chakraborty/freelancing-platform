@@ -9,4 +9,8 @@ import (
 func SetupAuthRoutes(app *fiber.App) {
 
 	app.Post("/login", handlers.Login)
+	app.Post(
+		"/auth/google",
+		handlers.GoogleLogin,
+	)
 }

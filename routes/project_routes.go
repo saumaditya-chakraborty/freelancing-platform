@@ -12,6 +12,12 @@ func SetupProjectRoutes(app *fiber.App) {
 	app.Get("/projects", handlers.GetProjects)
 
 	app.Get("/projects/:id", handlers.GetProjectByID)
+	app.Patch(
+	"/projects/:id/status",
+	middleware.Protected(),
+	middleware.RequireRole("client"),
+	handlers.UpdateProjectStatus,
+)
 
 	app.Post(
 		"/projects",

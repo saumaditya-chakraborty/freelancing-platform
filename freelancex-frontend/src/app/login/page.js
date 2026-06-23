@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/services/auth";
+import { GoogleLogin } from "@react-oauth/google";
 
 export default function LoginPage() {
  const router = useRouter();
@@ -38,6 +39,38 @@ const handleLogin = async (e) => {
   console.error(error);
   alert("Login Failed");
 }
+};
+
+const handleGoogleLogin = async (credentialResponse) => {
+  try {
+    const payload = JSON.parse(
+      atob(credentialResponse.credential.split(".")[1])
+    );
+
+    const res = await fetch(
+      "http://localhost:8080/auth/google",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: payload.email,
+          name: payload.name,
+        }),
+      }
+    );
+
+    const data = await res.json();
+
+    console.log("Backend:", data);
+
+    localStorage.setItem("token", data.token);
+
+    router.push("/client/dashboard");
+  } catch (err) {
+    console.error(err);
+  }
 };
   return (
     <main className="min-h-screen bg-black text-white overflow-hidden flex items-center justify-center px-6">
@@ -117,12 +150,23 @@ const handleLogin = async (e) => {
 
           {/* Divider */}
           <div className="flex items-center gap-4 my-8">
+            
             <div className="flex-1 h-px bg-white/10"></div>
             <span className="text-gray-500 text-sm">
               
             </span>
             <div className="flex-1 h-px bg-white/10"></div>
           </div>
+
+          {/* Google Login */}
+<div className="flex justify-center mb-6">
+  <GoogleLogin
+    onSuccess={handleGoogleLogin}
+    onError={() => {
+      console.log("Google Login Failed");
+    }}
+  />
+</div>
 
         
 

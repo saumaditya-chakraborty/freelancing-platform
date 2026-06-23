@@ -113,18 +113,21 @@ export default function FreelancerDashboard() {
 
       <nav className="relative z-10 flex items-center justify-between px-8 py-6 border-b border-white/10 backdrop-blur-md">
 
-        <h1 className="text-3xl font-black tracking-wide">
-          Freelance
-          <span
-            className="text-[#1424ff]"
-            style={{
-              textShadow:
-                "0 0 12px #1424ff",
-            }}
-          >
-            X
-          </span>
-        </h1>
+          <h1 className="text-5xl font-black tracking-wide">
+  <span
+    style={{
+      color: "cyan",
+    }}
+  >
+    Freelance
+  </span>
+
+  <span
+    className="text-white"
+  >
+    X
+  </span>
+</h1>
 
         <div className="flex gap-4 items-center">
 

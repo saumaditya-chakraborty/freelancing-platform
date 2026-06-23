@@ -48,6 +48,11 @@ func CreateProposal(c *fiber.Ctx) error {
 		})
 	}
 
+	config.DB.
+	Model(&models.Project{}).
+	Where("id = ?", proposal.ProjectID).
+	Update("status", "reviewing_proposals")
+
 	// DEBUG RESPONSE
 	return c.Status(201).JSON(fiber.Map{
 		"DEBUG":    "NEW_HANDLER",
@@ -250,4 +255,27 @@ func AcceptProposal(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message": "proposal accepted successfully",
 	})
+}
+
+func GetProjectProposals(c *fiber.Ctx) error {
+
+	projectID, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "invalid project id",
+		})
+	}
+
+	var proposals []models.Proposal
+
+	if err := config.DB.
+		Where("project_id = ?", projectID).
+		Find(&proposals).Error; err != nil {
+
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to fetch proposals",
+		})
+	}
+
+	return c.JSON(proposals)
 }

@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"strconv"
-
+	"fmt"
 	"freelancing-platform/config"
 	"freelancing-platform/models"
 
@@ -43,7 +43,29 @@ func GetProjects(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(projects)
+	var response []fiber.Map
+
+	for _, project := range projects {
+
+		var proposalCount int64
+
+		config.DB.
+			Model(&models.Proposal{}).
+			Where("project_id = ?", project.ID).
+			Count(&proposalCount)
+
+		response = append(response, fiber.Map{
+			"id":             project.ID,
+			"title":          project.Title,
+			"description":    project.Description,
+			"budget":         project.Budget,
+			"client_id":      project.ClientID,
+			"status":         project.Status,
+			"proposal_count": proposalCount,
+		})
+	}
+
+	return c.JSON(response)
 }
 
 func GetProjectByID(c *fiber.Ctx) error {
@@ -144,4 +166,42 @@ func DeleteProject(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message": "project deleted",
 	})
+}
+
+func UpdateProjectStatus(c *fiber.Ctx) error {
+
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "invalid project id",
+		})
+	}
+
+	var body struct {
+		Status string `json:"status"`
+	}
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "invalid request body",
+		})
+	}
+fmt.Println("Received status:", body.Status)
+	var project models.Project
+
+	if err := config.DB.First(&project, id).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{
+			"error": "project not found",
+		})
+	}
+
+	project.Status = body.Status
+
+	if err := config.DB.Save(&project).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to update status",
+		})
+	}
+
+	return c.JSON(project)
 }
