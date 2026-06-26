@@ -1,9 +1,9 @@
-
 package handlers
 
 import (
 	"log"
 	"strconv"
+	"sync"
 	"time"
 
 	"freelancing-platform/config"
@@ -13,114 +13,223 @@ import (
 	"github.com/gofiber/websocket/v2"
 )
 
-var Clients = make(map[string]*websocket.Conn)
+var (
+	Clients      = make(map[uint]*websocket.Conn)
+	ClientsMutex sync.RWMutex
+)
+
+// =======================================================
+// WEBSOCKET CHAT
+// =======================================================
 
 func Chat(c *websocket.Conn) {
 
-	userID := c.Params("userId")
+	userID64, err := strconv.ParseUint(
+		c.Params("userId"),
+		10,
+		64,
+	)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	userID := uint(userID64)
+
+	conversationID64, err := strconv.ParseUint(
+		c.Params("conversationId"),
+		10,
+		64,
+	)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	conversationID := uint(conversationID64)
+
+	ClientsMutex.Lock()
+
+	if oldConn, ok := Clients[userID]; ok {
+		oldConn.Close()
+	}
 
 	Clients[userID] = c
 
+	ClientsMutex.Unlock()
+
+	
 	defer func() {
+
+		ClientsMutex.Lock()
 		delete(Clients, userID)
+		ClientsMutex.Unlock()
+
 		c.Close()
+
 	}()
 
 	for {
 
 		var msg struct {
-			ReceiverID string `json:"receiver_id"`
+			ReceiverID uint   `json:"receiver_id"`
 			Message    string `json:"message"`
 		}
-
 		if err := c.ReadJSON(&msg); err != nil {
 			log.Println(err)
 			break
 		}
 
-		senderIDUint, _ := strconv.ParseUint(userID, 10, 64)
-		receiverIDUint, _ := strconv.ParseUint(msg.ReceiverID, 10, 64)
+		senderID := userID
+		receiverID := msg.ReceiverID
+		convID := conversationID
 
-		// ---------------------------------------------------
-		// FIND OR CREATE CONVERSATION
-		// ---------------------------------------------------
-
-		var conversation models.Conversation
-
-		err := config.DB.
-			Where(
-				"(user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)",
-				uint(senderIDUint),
-				uint(receiverIDUint),
-				uint(receiverIDUint),
-				uint(senderIDUint),
-			).
-			First(&conversation).Error
-
-		if err != nil {
-
-			conversation = models.Conversation{
-				User1ID: uint(senderIDUint),
-				User2ID: uint(receiverIDUint),
-
-				LastMessage:   msg.Message,
-				LastMessageAt: time.Now(),
-			}
-
-			if err := config.DB.Create(&conversation).Error; err != nil {
-				log.Println("failed to create conversation:", err)
-				continue
-			}
-		}
-
-		// ---------------------------------------------------
-		// SAVE MESSAGE
-		// ---------------------------------------------------
+		// Save message
 
 		message := models.Message{
-			ConversationID: conversation.ID,
-
-			SenderID:   uint(senderIDUint),
-			ReceiverID: uint(receiverIDUint),
-
-			Content: msg.Message,
-			IsRead: false,
+			ConversationID: convID,
+			SenderID:       senderID,
+			ReceiverID:     receiverID,
+			Content:        msg.Message,
+			IsRead:         false,
 		}
 
 		if err := config.DB.Create(&message).Error; err != nil {
-			log.Println("failed to save message:", err)
+			log.Println(err)
+			continue
 		}
 
-		// ---------------------------------------------------
-		// UPDATE CONVERSATION
-		// ---------------------------------------------------
+		// Update conversation preview
 
-		config.DB.Model(&conversation).Updates(
-			map[string]interface{}{
+		if err := config.DB.
+			Model(&models.Conversation{}).
+			Where("id = ?", convID).
+			Updates(map[string]interface{}{
 				"last_message":    msg.Message,
 				"last_message_at": time.Now(),
-			},
-		)
+			}).Error; err != nil {
 
-		// ---------------------------------------------------
-		// SEND TO RECEIVER IF ONLINE
-		// ---------------------------------------------------
+			log.Println(err)
 
-		if receiver, ok := Clients[msg.ReceiverID]; ok {
+		}
 
-			receiver.WriteJSON(fiber.Map{
-				"conversation_id": conversation.ID,
-				"sender_id":       userID,
-				"receiver_id":     msg.ReceiverID,
-				"message":         msg.Message,
-			})
+		// Send instantly if receiver is online
+		payload := fiber.Map{
+			"conversation_id": convID,
+			"sender_id":       senderID,
+			"receiver_id":     receiverID,
+			"message":         msg.Message,
+		}
+
+		ClientsMutex.RLock()
+
+		receiver, receiverOnline := Clients[receiverID]
+		sender, senderOnline := Clients[senderID]
+
+		ClientsMutex.RUnlock()
+
+		if receiverOnline {
+			if err := receiver.WriteJSON(payload); err != nil {
+				log.Println(err)
+			}
+		}
+
+		if senderOnline {
+			if err := sender.WriteJSON(payload); err != nil {
+				log.Println(err)
+			}
 		}
 	}
 }
 
-// ---------------------------------------------------
+// =======================================================
+// CREATE CONVERSATION
+// =======================================================
+
+func CreateConversation(c *fiber.Ctx) error {
+
+	clientID, _ := c.Locals("userID").(uint)
+
+	var body struct {
+		ProjectID    uint `json:"project_id"`
+		FreelancerID uint `json:"freelancer_id"`
+	}
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "invalid request body",
+		})
+	}
+
+	var project models.Project
+	if err := config.DB.First(&project, body.ProjectID).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{
+			"error": "project not found",
+		})
+	}
+
+	// Only the project owner can start the conversation
+	if project.ClientID != clientID {
+		return c.Status(403).JSON(fiber.Map{
+			"error": "you do not own this project",
+		})
+	}
+
+	// Check that the freelancer actually submitted a proposal
+	var proposal models.Proposal
+
+	if err := config.DB.
+		Where(
+			"project_id = ? AND freelancer_id = ?",
+			body.ProjectID,
+			body.FreelancerID,
+		).
+		First(&proposal).Error; err != nil {
+
+		return c.Status(403).JSON(fiber.Map{
+			"error": "this freelancer has not bid on the project",
+		})
+	}
+
+	// Check if conversation already exists
+	var conversation models.Conversation
+
+	err := config.DB.
+		Where(
+			"project_id = ? AND client_id = ? AND freelancer_id = ?",
+			body.ProjectID,
+			clientID,
+			body.FreelancerID,
+		).
+		First(&conversation).Error
+
+	if err == nil {
+		return c.JSON(conversation)
+	}
+
+	// Create a new conversation
+	conversation = models.Conversation{
+		ProjectID:     body.ProjectID,
+		ClientID:      clientID,
+		FreelancerID:  body.FreelancerID,
+		LastMessage:   "",
+		LastMessageAt: time.Now(),
+	}
+
+	if err := config.DB.Create(&conversation).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to create conversation",
+		})
+	}
+
+	return c.Status(201).JSON(conversation)
+}
+
+// =======================================================
 // GET ALL CONVERSATIONS
-// ---------------------------------------------------
+// =======================================================
 
 func GetConversations(c *fiber.Ctx) error {
 
@@ -130,7 +239,7 @@ func GetConversations(c *fiber.Ctx) error {
 
 	if err := config.DB.
 		Where(
-			"user1_id = ? OR user2_id = ?",
+			"client_id = ? OR freelancer_id = ?",
 			userID,
 			userID,
 		).
@@ -145,21 +254,44 @@ func GetConversations(c *fiber.Ctx) error {
 	return c.JSON(conversations)
 }
 
-// ---------------------------------------------------
+// =======================================================
 // GET ALL MESSAGES OF A CONVERSATION
-// ---------------------------------------------------
+// =======================================================
 
 func GetMessages(c *fiber.Ctx) error {
 
-	conversationID := c.Params("conversationId")
+	userID, _ := c.Locals("userID").(uint)
+
+	conversationID, err := strconv.Atoi(c.Params("conversationId"))
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "invalid conversation id",
+		})
+	}
+
+	// Verify the user belongs to this conversation
+	var conversation models.Conversation
+
+	if err := config.DB.
+		First(&conversation, conversationID).Error; err != nil {
+
+		return c.Status(404).JSON(fiber.Map{
+			"error": "conversation not found",
+		})
+	}
+
+	if conversation.ClientID != userID &&
+		conversation.FreelancerID != userID {
+
+		return c.Status(403).JSON(fiber.Map{
+			"error": "access denied",
+		})
+	}
 
 	var messages []models.Message
 
 	if err := config.DB.
-		Where(
-			"conversation_id = ?",
-			conversationID,
-		).
+		Where("conversation_id = ?", conversationID).
 		Order("created_at ASC").
 		Find(&messages).Error; err != nil {
 
@@ -171,27 +303,51 @@ func GetMessages(c *fiber.Ctx) error {
 	return c.JSON(messages)
 }
 
-// ---------------------------------------------------
-// MARK AS READ
-// ---------------------------------------------------
+// =======================================================
+// MARK CONVERSATION AS READ
+// =======================================================
 
 func MarkConversationRead(c *fiber.Ctx) error {
 
-	conversationID := c.Params("conversationId")
+	userID, _ := c.Locals("userID").(uint)
+
+	conversationID, err := strconv.Atoi(c.Params("conversationId"))
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "invalid conversation id",
+		})
+	}
+
+	// Verify the user belongs to this conversation
+	var conversation models.Conversation
+
+	if err := config.DB.
+		First(&conversation, conversationID).Error; err != nil {
+
+		return c.Status(404).JSON(fiber.Map{
+			"error": "conversation not found",
+		})
+	}
+
+	if conversation.ClientID != userID &&
+		conversation.FreelancerID != userID {
+
+		return c.Status(403).JSON(fiber.Map{
+			"error": "access denied",
+		})
+	}
 
 	if err := config.DB.
 		Model(&models.Message{}).
 		Where(
-			"conversation_id = ?",
+			"conversation_id = ? AND receiver_id = ?",
 			conversationID,
+			userID,
 		).
-		Update(
-			"is_read",
-			true,
-		).Error; err != nil {
+		Update("is_read", true).Error; err != nil {
 
 		return c.Status(500).JSON(fiber.Map{
-			"error": "failed to update messages",
+			"error": "failed to mark messages as read",
 		})
 	}
 

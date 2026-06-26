@@ -22,6 +22,9 @@ const handleLogin = async (e) => {
     console.log("Backend Response:", data);
 
     localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+
+console.log("Saved User:", data.user);
 
     if (data.user.role === "client") {
       router.push("/client/dashboard");
@@ -66,6 +69,7 @@ const handleGoogleLogin = async (credentialResponse) => {
     console.log("Backend:", data);
 
     localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
 
     router.push("/client/dashboard");
   } catch (err) {

@@ -10,18 +10,25 @@ import (
 
 func MessageRoutes(app *fiber.App) {
 
-	// --------------------------------
-	// WEBSOCKET CHAT
-	// --------------------------------
+	// -----------------------------
+	// WebSocket
+	// -----------------------------
 
 	app.Get(
-		"/ws/:userId",
+		"/ws/:conversationId/:userId",
 		websocket.New(handlers.Chat),
 	)
 
-	// --------------------------------
-	// CONVERSATIONS
-	// --------------------------------
+	// -----------------------------
+	// Conversations
+	// -----------------------------
+
+	app.Post(
+		"/conversations",
+		middleware.Protected(),
+		middleware.RequireRole("client"),
+		handlers.CreateConversation,
+	)
 
 	app.Get(
 		"/conversations",
@@ -29,19 +36,15 @@ func MessageRoutes(app *fiber.App) {
 		handlers.GetConversations,
 	)
 
-	// --------------------------------
-	// CHAT HISTORY
-	// --------------------------------
+	// -----------------------------
+	// Messages
+	// -----------------------------
 
 	app.Get(
 		"/messages/:conversationId",
 		middleware.Protected(),
 		handlers.GetMessages,
 	)
-
-	// --------------------------------
-	// MARK AS READ
-	// --------------------------------
 
 	app.Put(
 		"/messages/read/:conversationId",
