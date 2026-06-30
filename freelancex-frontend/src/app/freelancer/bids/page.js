@@ -80,13 +80,17 @@ export default function MyBidsPage() {
 
       <nav className="relative z-10 flex items-center justify-between px-8 py-6 border-b border-white/10 backdrop-blur-md">
 
-        <h1 className="text-3xl font-black tracking-wide">
-          Freelance
+        <h1 className="text-5xl font-black tracking-wide">
           <span
-            className="text-[#1424ff]"
             style={{
-              textShadow: "0 0 12px #1424ff",
+              color: "cyan",
             }}
+          >
+            Freelance
+          </span>
+
+          <span
+            className="text-white"
           >
             X
           </span>
@@ -139,7 +143,7 @@ export default function MyBidsPage() {
                   <div>
 
                     <h3 className="text-2xl font-bold mb-4">
-                      Project #{proposal.project_id || proposal.ProjectID}
+                      {proposal.project?.title || `Project #${proposal.project_id}`}
                     </h3>
 
                     <div className="space-y-2 text-gray-300">
@@ -161,15 +165,14 @@ export default function MyBidsPage() {
                       <p>
                         Status:
                         <span
-                          className={`ml-2 font-semibold ${
-                            (proposal.status || proposal.Status) ===
-                            "accepted"
+                          className={`ml-2 font-semibold ${(proposal.status || proposal.Status) ===
+                              "accepted"
                               ? "text-green-400"
                               : (proposal.status || proposal.Status) ===
                                 "rejected"
-                              ? "text-red-400"
-                              : "text-yellow-400"
-                          }`}
+                                ? "text-red-400"
+                                : "text-yellow-400"
+                            }`}
                         >
                           {proposal.status || proposal.Status}
                         </span>
@@ -202,19 +205,19 @@ export default function MyBidsPage() {
 
                 {(proposal.cover_letter ||
                   proposal.CoverLetter) && (
-                  <div className="mt-6 pt-6 border-t border-white/10">
+                    <div className="mt-6 pt-6 border-t border-white/10">
 
-                    <h4 className="font-semibold mb-3">
-                      Cover Letter
-                    </h4>
+                      <h4 className="font-semibold mb-3">
+                        Cover Letter
+                      </h4>
 
-                    <p className="text-gray-400">
-                      {proposal.cover_letter ||
-                        proposal.CoverLetter}
-                    </p>
+                      <p className="text-gray-400">
+                        {proposal.cover_letter ||
+                          proposal.CoverLetter}
+                      </p>
 
-                  </div>
-                )}
+                    </div>
+                  )}
               </div>
             ))
           )}

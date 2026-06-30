@@ -89,21 +89,21 @@ export default function FreelancerProjectsPage() {
 
       {/* Navbar */}
       <nav className="relative z-10 flex items-center justify-between px-8 py-6 border-b border-white/10 backdrop-blur-md">
-         <h1 className="text-5xl font-black tracking-wide">
-  <span
-    style={{
-      color: "cyan",
-    }}
-  >
-    Freelance
-  </span>
+        <h1 className="text-5xl font-black tracking-wide">
+          <span
+            style={{
+              color: "cyan",
+            }}
+          >
+            Freelance
+          </span>
 
-  <span
-    className="text-white"
-  >
-    X
-  </span>
-</h1>
+          <span
+            className="text-white"
+          >
+            X
+          </span>
+        </h1>
 
         <a
           href="/freelancer/dashboard"
@@ -126,101 +126,145 @@ export default function FreelancerProjectsPage() {
         </div>
       </section>
 
-      {/* Projects Grid */}
-      <section className="relative z-10 px-8 py-10">
-        <div className="max-w-7xl mx-auto">
+    {/* Projects Grid */}
+<section className="relative z-10 px-8 py-10">
+  <div className="max-w-7xl mx-auto">
 
-          {projects.length === 0 ? (
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-10 text-center text-gray-400">
-              No Projects Found
-            </div>
-          ) : (
-            <div className="grid md:grid-cols-3 gap-6">
+    {projects.length === 0 ? (
 
-             {projects.map((project) => (
-  <div
-    key={project.id}
-    className={`
-      bg-white/5
-      border
-      rounded-3xl
-      p-8
-      backdrop-blur-xl
-      transition
-      hover:border-[#1424ff]
-      hover:scale-[1.02]
-      h-[340px]
-      flex
-      flex-col
-      justify-between
-      overflow-hidden
-      ${
-        selectedProject?.id === project.id
-          ? "border-[#1424ff]"
-          : "border-white/10"
-      }
-    `}
-  >
-    {/* TOP CONTENT */}
-    <div className="space-y-5">
+      <div className="bg-white/5 border border-white/10 rounded-3xl p-10 text-center text-gray-400">
+        No Projects Found
+      </div>
 
-      <h3 className="text-3xl font-black leading-tight break-words">
-        {project.title}
-      </h3>
+    ) : (
 
-      <p className="text-gray-400 leading-relaxed break-words text-base">
-        {project.description}
-      </p>
+      <div className="grid md:grid-cols-3 gap-6">
 
-    </div>
+          {projects.map((project) => {
 
-    {/* BOTTOM CONTENT */}
-    <div className="pt-6 border-t border-white/10">
+  const canBid =
+    project.status === "open" ||
+    project.status === "reviewing_proposals";
 
-      <div className="flex justify-between items-center mb-5">
+  return (
 
-        <span className="text-3xl font-black text-[#1424ff]">
-          ₹{project.budget}
-        </span>
+    <div
+      key={project.id}
+      className={`
+        bg-white/5
+        border
+        rounded-3xl
+        p-8
+        backdrop-blur-xl
+        transition
+        hover:border-[#1424ff]
+        hover:scale-[1.02]
+        h-[340px]
+        flex
+        flex-col
+        justify-between
+        overflow-hidden
+        ${
+          selectedProject?.id === project.id
+            ? "border-[#1424ff]"
+            : "border-white/10"
+        }
+      `}
+    >
 
-        <span className="px-4 py-2 rounded-full bg-blue-500/20 text-blue-400 text-sm font-semibold">
-          {project.status}
-        </span>
+      {/* TOP CONTENT */}
+
+      <div className="space-y-5">
+
+        <h3 className="text-3xl font-black leading-tight break-words">
+          {project.title}
+        </h3>
+
+        <p className="text-gray-400 leading-relaxed break-words text-base">
+          {project.description}
+        </p>
 
       </div>
 
-      <button
-        onClick={() => setSelectedProject(project)}
-        className="
-          w-full
-          py-4
-          rounded-2xl
-          bg-[#1424ff]
-          font-bold
-          text-lg
-          hover:opacity-90
-          transition
-        "
-      >
-        Bid Now
-      </button>
+      {/* BOTTOM CONTENT */}
 
-    </div>
-  </div>
-))}
+      <div className="pt-6 border-t border-white/10">
 
-            </div>
-          )}
+        <div className="flex justify-between items-center mb-5">
+
+          <span className="text-3xl font-black text-[#1424ff]">
+            ₹{project.budget}
+          </span>
+
+          <span className="px-4 py-2 rounded-full bg-blue-500/20 text-blue-400 text-sm font-semibold">
+            {project.status}
+          </span>
 
         </div>
-      </section>
+
+        {canBid ? (
+
+          <button
+            onClick={() => setSelectedProject(project)}
+            className="
+              w-full
+              py-4
+              rounded-2xl
+              bg-[#1424ff]
+              font-bold
+              text-lg
+              hover:opacity-90
+              transition
+            "
+          >
+            Bid Now
+          </button>
+
+        ) : (
+
+          <button
+            disabled
+            className="
+              w-full
+              py-4
+              rounded-2xl
+              bg-red-500/20
+              border
+              border-red-500/40
+              text-red-400
+              font-bold
+              cursor-not-allowed
+            "
+          >
+            Oops! The project bidding window is closed.
+          </button>
+
+        )}
+
+      </div>
+
+    </div>
+
+  );
+
+})}
+
+      </div>
+
+    )}
+
+  </div>
+</section>
+                
+                
+      
 
       {/* Proposal Section */}
-     <section className="relative z-10 px-8 pb-20">
-       <div className="max-w-5xl mx-auto">
+      <section className="relative z-10 px-8 pb-20">
+        <div className="max-w-5xl mx-auto">
 
-      <div
-  className="
+          <div
+            className="
     bg-gradient-to-r
     from-[#1424ff]/20
     via-black/40
@@ -232,38 +276,38 @@ export default function FreelancerProjectsPage() {
     px-14
     py-12
   "
-> 
-  {!selectedProject ? (
-    <div className="text-center py-16">
+          >
+            {!selectedProject ? (
+              <div className="text-center py-16">
 
-      <h2 className="text-4xl font-black mb-4">
-        Submit Proposal
-      </h2>
+                <h2 className="text-4xl font-black mb-4">
+                  Submit Proposal
+                </h2>
 
-      <p className="text-gray-400 text-lg">
-        Select a project above to start bidding.
-      </p>
+                <p className="text-gray-400 text-lg">
+                  Select a project above to start bidding.
+                </p>
 
-    </div>
-  ) : (
-    <>
-      {/* Header */}
-  <div className="mb-12 text-center">
+              </div>
+            ) : (
+              <>
+                {/* Header */}
+                <div className="mb-12 text-center">
 
-  <h2 className="text-5xl font-black mb-4">
-    Submit Proposal
-    <br></br>
-  </h2>
+                  <h2 className="text-5xl font-black mb-4">
+                    Submit Proposal
+                    <br></br>
+                  </h2>
 
-  <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-   <br></br> Tell the client why you're the perfect fit.
-  </p>
+                  <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+                    <br></br> Tell the client why you're the perfect fit.
+                  </p>
 
-</div>
+                </div>
 
-      {/* Selected Project Card */}
-            <div
-          className="
+                {/* Selected Project Card */}
+                <div
+                  className="
             mt-12
             mb-12
             px-8
@@ -273,25 +317,25 @@ export default function FreelancerProjectsPage() {
             border
             border-white/10
           "
-        >
-        <h3 className="text-3xl font-bold mb-4">
-          {selectedProject.title}
-        </h3>
+                >
+                  <h3 className="text-3xl font-bold mb-4">
+                    {selectedProject.title}
+                  </h3>
 
-        <p className="text-gray-400 leading-relaxed">
-          {selectedProject.description}
-        </p>
-      </div>
+                  <p className="text-gray-400 leading-relaxed">
+                    {selectedProject.description}
+                  </p>
+                </div>
 
-      {/* Inputs */}
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
+                {/* Inputs */}
+                <div className="grid md:grid-cols-2 gap-6 mb-8">
 
-        <input
-          type="number"
-          value={bidAmount}
-          onChange={(e) => setBidAmount(e.target.value)}
-          placeholder="Bid Amount (₹)"
-          className="
+                  <input
+                    type="number"
+                    value={bidAmount}
+                    onChange={(e) => setBidAmount(e.target.value)}
+                    placeholder="Bid Amount (₹)"
+                    className="
             w-full
             px-8
             py-6
@@ -303,14 +347,14 @@ export default function FreelancerProjectsPage() {
             text-lg
             focus:border-[#1424ff]
           "
-        />
+                  />
 
-        <input
-          type="number"
-          value={deliveryDays}
-          onChange={(e) => setDeliveryDays(e.target.value)}
-          placeholder="Delivery Days"
-          className="
+                  <input
+                    type="number"
+                    value={deliveryDays}
+                    onChange={(e) => setDeliveryDays(e.target.value)}
+                    placeholder="Delivery Days"
+                    className="
             w-full
             px-6
             py-5
@@ -322,17 +366,17 @@ export default function FreelancerProjectsPage() {
             text-lg
             focus:border-[#1424ff]
           "
-        />
+                  />
 
-      </div>
+                </div>
 
-      {/* Cover Letter */}
-      <textarea
-        rows="10"
-        value={coverLetter}
-        onChange={(e) => setCoverLetter(e.target.value)}
-        placeholder="Describe your plan, timeline, tech stack and why the client should hire you..."
-        className="
+                {/* Cover Letter */}
+                <textarea
+                  rows="10"
+                  value={coverLetter}
+                  onChange={(e) => setCoverLetter(e.target.value)}
+                  placeholder="Describe your plan, timeline, tech stack and why the client should hire you..."
+                  className="
           w-full
           px-8
           py-6
@@ -346,12 +390,12 @@ export default function FreelancerProjectsPage() {
           leading-relaxed
           focus:border-[#1424ff]
         "
-      />
+                />
 
-      {/* Submit Button */}
-      <button
-        onClick={submitProposal}
-        className="
+                {/* Submit Button */}
+                <button
+                  onClick={submitProposal}
+                  className="
           w-full
           mt-10
           py-5
@@ -362,16 +406,16 @@ export default function FreelancerProjectsPage() {
           hover:opacity-90
           transition
         "
-      >
-        Submit Proposal
-      </button>
-    </>
-  )}
-</div>
-
+                >
+                  Submit Proposal
+                </button>
+              </>
+            )}
           </div>
 
-        
+        </div>
+
+
 
       </section>
 

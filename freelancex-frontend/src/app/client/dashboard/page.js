@@ -53,9 +53,12 @@ export default function ClientDashboard() {
         (project) => project.status === "in_progress"
       ).length;
 
-      const openProposals = proposals.filter(
-        (proposal) => proposal.status === "pending"
-      ).length;
+   const proposalsReceived = proposals.filter((proposal) =>
+  myProjects.some(
+    (project) =>
+      Number(project.id) === Number(proposal.project_id)
+  )
+).length;
 
       const totalBudget = myProjects.reduce(
         (sum, project) => sum + (project.budget || 0),
@@ -65,12 +68,12 @@ export default function ClientDashboard() {
       setDashboardData({
         user: storedUser,
         projects: myProjects,
-        stats: {
-          projectsPosted: myProjects.length,
-          activeHires,
-          openProposals,
-          escrowBalance: totalBudget,
-        },
+       stats: {
+  projectsPosted: myProjects.length,
+  activeHires,
+  proposalsReceived,
+  escrowBalance: totalBudget,
+},
       });
     } catch (error) {
       console.error("Dashboard Error:", error);
@@ -94,21 +97,21 @@ export default function ClientDashboard() {
 
       {/* Navbar */}
       <nav className="relative z-10 flex items-center justify-between px-8 py-6 border-b border-white/10 backdrop-blur-md">
-               <h1 className="text-5xl font-black tracking-wide">
-  <span
-    style={{
-      color: "cyan",
-    }}
-  >
-    Freelance
-  </span>
+        <h1 className="text-5xl font-black tracking-wide">
+          <span
+            style={{
+              color: "cyan",
+            }}
+          >
+            Freelance
+          </span>
 
-  <span
-    className="text-white"
-  >
-    X
-  </span>
-</h1>
+          <span
+            className="text-white"
+          >
+            X
+          </span>
+        </h1>
 
         <div className="flex gap-4 items-center">
           <button className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/10 transition">
@@ -125,7 +128,7 @@ export default function ClientDashboard() {
       <section className="relative z-10 px-8 pt-12">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-5xl font-black">
-            Welcome Back, { "Client"}
+            Welcome Back, {dashboardData.user?.name || "Client"}
           </h2>
 
           <p className="mt-4 text-gray-300 text-lg">
@@ -153,9 +156,9 @@ export default function ClientDashboard() {
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-xl">
-            <h3 className="text-gray-400">Open Proposals</h3>
+            <h3 className="text-gray-400">Proposals Received</h3>
             <p className="text-5xl font-black mt-3 text-[#1424ff]">
-              {dashboardData.stats.openProposals}
+              {dashboardData.stats.proposalsReceived}
             </p>
           </div>
 
@@ -187,7 +190,7 @@ export default function ClientDashboard() {
               </h3>
 
               <p className="mt-3 text-gray-400">
-                Create a new project.
+                Create a new project
               </p>
             </Link>
 
@@ -196,11 +199,11 @@ export default function ClientDashboard() {
               className="bg-white/5 border border-white/10 rounded-3xl p-8 hover:scale-105 transition"
             >
               <h3 className="text-xl font-bold">
-                Projects
+                My Projects
               </h3>
 
               <p className="mt-3 text-gray-400">
-                Manage all projects.
+                Manage your projects
               </p>
             </Link>
 
@@ -213,7 +216,7 @@ export default function ClientDashboard() {
               </h3>
 
               <p className="mt-3 text-gray-400">
-                Release milestone payments.
+                Release milestone payments
               </p>
             </Link>
 
@@ -226,7 +229,7 @@ export default function ClientDashboard() {
               </h3>
 
               <p className="mt-3 text-gray-400">
-                Chat with freelancers.
+                Chat with freelancers
               </p>
             </Link>
 

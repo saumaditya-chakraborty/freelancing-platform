@@ -31,26 +31,36 @@ const updateStatus = async (projectId, status) => {
     console.error(err);
   }
 };
-  const fetchProjects = async () => {
-    try {
-      const res = await fetch(
-        "http://localhost:8080/projects"
-      );
+   const fetchProjects = async () => {
+  try {
+    const res = await fetch(
+      "http://localhost:8080/projects"
+    );
 
-      const data = await res.json();
+    const data = await res.json();
 
-      console.log("PROJECTS:", data);
+    const user = JSON.parse(
+      localStorage.getItem("user") || "{}"
+    );
 
-      setProjects(data);
-    } catch (err) {
-      console.error(
-        "Error fetching projects:",
-        err
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    const myProjects = data.filter(
+      (project) =>
+        Number(project.client_id) === Number(user.id)
+    );
+
+    console.log("PROJECTS:", myProjects);
+
+    setProjects(myProjects);
+
+  } catch (err) {
+    console.error(
+      "Error fetching projects:",
+      err
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchProjects();
@@ -66,7 +76,7 @@ const updateStatus = async (projectId, status) => {
 
         {/* Header */}
         <h1 className="text-5xl font-black text-center mb-12">
-          All Projects
+          My Projects
         </h1>
 
         {/* Loading */}

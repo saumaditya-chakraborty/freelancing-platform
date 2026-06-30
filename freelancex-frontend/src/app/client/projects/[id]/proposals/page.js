@@ -73,10 +73,12 @@ if (!res.ok) {
   return;
 }
 
-console.log("Conversation returned:", data);
-router.push(`/client/messages/${data.id}`);
+const user = JSON.parse(
+  localStorage.getItem("user") || "{}"
+);
 
 
+router.push("/client/messages");
 
   } catch (err) {
     console.error(err);

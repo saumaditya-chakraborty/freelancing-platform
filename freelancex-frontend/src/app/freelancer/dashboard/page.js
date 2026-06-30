@@ -47,14 +47,15 @@ export default function FreelancerDashboard() {
 
       const projects = await projectsRes.json();
       const proposals = await proposalsRes.json();
-
       const myProposals = proposals.filter(
   (proposal) =>
-    proposal.FreelancerID === storedUser.id
-);
+    Number(proposal.freelancer_id || proposal.FreelancerID) ===
+    Number(storedUser.id)
+); 
+    
       const activeProjects = projects.filter(
         (project) =>
-          project.status === "in_progress"
+          project.status === "in_progress" || project.status === "reviewing_proposals"
       );
 
       const completedProjects = projects.filter(

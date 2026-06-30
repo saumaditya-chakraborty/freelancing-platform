@@ -64,7 +64,9 @@ func GetProposals(c *fiber.Ctx) error {
 
 	var proposals []models.Proposal
 
-	if err := config.DB.Find(&proposals).Error; err != nil {
+	if err := config.DB.
+	Preload("Project").
+	Find(&proposals).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"error": "failed to fetch proposals",
 		})

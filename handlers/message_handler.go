@@ -60,7 +60,6 @@ func Chat(c *websocket.Conn) {
 
 	ClientsMutex.Unlock()
 
-	
 	defer func() {
 
 		ClientsMutex.Lock()
@@ -238,6 +237,9 @@ func GetConversations(c *fiber.Ctx) error {
 	var conversations []models.Conversation
 
 	if err := config.DB.
+		Preload("Project").
+		Preload("Freelancer").
+		Preload("Client").
 		Where(
 			"client_id = ? OR freelancer_id = ?",
 			userID,
