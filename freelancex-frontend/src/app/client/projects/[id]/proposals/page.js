@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-
+import {
+  useParams,
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 export default function ProjectProposalsPage() {
   const params = useParams();
   const router = useRouter();
+  // const searchParams = useSearchParams();
+  // const conversationId = searchParams.get("conversation");
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,14 +32,14 @@ export default function ProjectProposalsPage() {
       );
 
       const data = await res.json();
-console.log("PROPOSALS DATA:", data);
-console.log("Is Array?", Array.isArray(data));
-     if (Array.isArray(data)) {
-  setProposals(data);
-} else {
-  console.log("Backend returned:", data);
-  setProposals([]);
-}
+      console.log("PROPOSALS DATA:", data);
+      console.log("Is Array?", Array.isArray(data));
+      if (Array.isArray(data)) {
+        setProposals(data);
+      } else {
+        console.log("Backend returned:", data);
+        setProposals([]);
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -43,48 +48,48 @@ console.log("Is Array?", Array.isArray(data));
   };
 
   const createConversation = async (proposal) => {
-  try {
-    const token = localStorage.getItem("token");
+    try {
+      const token = localStorage.getItem("token");
 
-    const res = await fetch(
-      "http://localhost:8080/conversations",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          project_id: Number(params.id),
-          freelancer_id: proposal.freelancer_id,
-        }),
+      const res = await fetch(
+        "http://localhost:8080/conversations",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            project_id: Number(params.id),
+            freelancer_id: proposal.freelancer_id,
+          }),
+        }
+      );
+      const data = await res.json();
+
+      console.log("STATUS:", res.status);
+      console.log("FULL RESPONSE:", data);
+      console.log("ID:", data.id);
+      console.log("ConversationID:", data.conversation_id);
+      console.log("Keys:", Object.keys(data));
+
+      if (!res.ok) {
+        alert(JSON.stringify(data));
+        return;
       }
-    );
-const data = await res.json();
 
-console.log("STATUS:", res.status);
-console.log("FULL RESPONSE:", data);
-console.log("ID:", data.id);
-console.log("ConversationID:", data.conversation_id);
-console.log("Keys:", Object.keys(data));
-
-if (!res.ok) {
-  alert(JSON.stringify(data));
-  return;
-}
-
-const user = JSON.parse(
-  localStorage.getItem("user") || "{}"
-);
+      const user = JSON.parse(
+        localStorage.getItem("user") || "{}"
+      );
 
 
-router.push("/client/messages");
+      router.push(`/client/messages?conversation=${data.id}`);
 
-  } catch (err) {
-    console.error(err);
-    alert("Failed to create conversation");
-  }
-};
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create conversation");
+    }
+  };
 
   return (
     <main className="min-h-screen bg-black text-white px-8 py-10">
@@ -176,7 +181,7 @@ router.push("/client/messages");
               <div className="mt-6 flex gap-4">
 
                 <button
-                 onClick={() => createConversation(proposal)}
+                  onClick={() => createConversation(proposal)}
                   className="
                     px-6
                     py-3

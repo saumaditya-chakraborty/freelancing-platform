@@ -37,6 +37,8 @@ export default function MessagesPage() {
     try {
       const data = await getConversations();
 
+      console.log("Conversations:", data);
+
       if (Array.isArray(data)) {
         setConversations(data);
       } else {
@@ -149,7 +151,7 @@ export default function MessagesPage() {
       })
     );
 
- 
+
 
     setInput("");
   };
@@ -208,10 +210,14 @@ export default function MessagesPage() {
             <div className="col-span-4 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-xl overflow-hidden flex flex-col">
 
               <div className="p-5 border-b border-white/10">
-
                 <h3 className="text-xl font-bold">
-                  Conversations
+
+                  {selectedConversation
+                    ? selectedConversation.project?.title
+                    : "Select a Conversation"}
+
                 </h3>
+
 
               </div>
 
@@ -249,35 +255,35 @@ export default function MessagesPage() {
 
                       <div className="flex items-center gap-4">
 
-                        <div
-                          className="
-                            h-12
-                            w-12
-                            rounded-full
-                            bg-[#1424ff]
-                            flex
-                            items-center
-                            justify-center
-                            font-bold
-                          "
-                        >
+                                  <div
+                                          className="
+                                            h-12
+                                            w-12
+                                            rounded-full
+                                            bg-[#1424ff]
+                                            flex
+                                            items-center
+                                            justify-center
+                                            font-bold
+                                          "
+                                        >
 
-                          {conv.client_id === userId
-                            ? "F"
-                            : "C"}
+                                          {conv.client_id === userId
+                                            ? conv.freelancer?.name?.charAt(0).toUpperCase()
+                                            : conv.client?.name?.charAt(0).toUpperCase()}
 
-                        </div>
+                                      </div>
 
                         <div className="flex-1">
 
                           <h4 className="font-semibold">
-                            Conversation #{conv.id}
+                            {conv.project?.title}
                           </h4>
 
                           <p className="text-sm text-gray-400 truncate">
-                            {conv.last_message
-                              ? conv.last_message
-                              : "Start chatting"}
+                            {conv.client_id === userId
+                              ? conv.freelancer?.name
+                              : conv.client?.name}
                           </p>
 
                         </div>
@@ -310,11 +316,10 @@ export default function MessagesPage() {
             >
 
               <div className="p-5 border-b border-white/10">
-
                 <h3 className="text-xl font-bold">
 
                   {selectedConversation
-                    ? `Conversation #${selectedConversation.id}`
+                    ? selectedConversation.project?.title
                     : "Select a Conversation"}
 
                 </h3>
@@ -349,8 +354,8 @@ export default function MessagesPage() {
                       <div
                         key={msg.id}
                         className={`flex ${isMine
-                            ? "justify-end"
-                            : "justify-start"
+                          ? "justify-end"
+                          : "justify-start"
                           }`}
                       >
 
@@ -366,14 +371,14 @@ export default function MessagesPage() {
                             }
                           `}
                         >
-
                           <p className="text-xs opacity-70 mb-2">
-
                             {isMine
                               ? "You"
-                              : "Freelancer"}
-
+                              : Number(userId) === Number(selectedConversation?.client_id)
+                                ? selectedConversation?.freelancer?.name
+                                : selectedConversation?.client?.name}
                           </p>
+
 
                           <p className="break-words whitespace-pre-wrap">
 
