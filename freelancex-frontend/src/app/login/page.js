@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/services/auth";
 import { GoogleLogin } from "@react-oauth/google";
@@ -11,6 +12,21 @@ export default function LoginPage() {
  const router = useRouter();
 const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
+useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  if (!token) return;
+
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  if (user.role === "client") {
+    router.replace("/client/dashboard");
+  } else if (user.role === "freelancer") {
+    router.replace("/freelancer/dashboard");
+  } else if (user.role === "admin") {
+    router.replace("/admin/dashboard");
+  }
+}, []);
 const handleLogin = async (e) => {
   e.preventDefault();
 
@@ -26,18 +42,16 @@ const handleLogin = async (e) => {
 
 console.log("Saved User:", data.user);
 
-    if (data.user.role === "client") {
-      router.push("/client/dashboard");
-    }
 
-    if (data.user.role === "freelancer") {
-      router.push("/freelancer/dashboard");
-    }
+if (data.user.role === "client") {
+    router.replace("/client/dashboard");
+} else if (data.user.role === "freelancer") {
+    router.replace("/freelancer/dashboard");
+} else if (data.user.role === "admin") {
+    router.replace("/admin/dashboard");
+}
 
-    if (data.user.role === "admin") {
-      router.push("/admin/dashboard");
-    }
-
+   
   } catch (error) {
   console.error(error);
   alert("Login Failed");
@@ -71,7 +85,7 @@ const handleGoogleLogin = async (credentialResponse) => {
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
 
-    router.push("/client/dashboard");
+    router.replace("/client/dashboard");
   } catch (err) {
     console.error(err);
   }

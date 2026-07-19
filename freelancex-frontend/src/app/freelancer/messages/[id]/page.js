@@ -14,6 +14,7 @@ const freelancerId = Number(searchParams.get("freelancer"));
 
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
+  const [conversation, setConversation] = useState(null);
   
 
   const socket = useRef(null);
@@ -30,13 +31,14 @@ const freelancerId = Number(searchParams.get("freelancer"));
 }, [messages]);
 
   useEffect(() => {
-    fetchMessages();
-    connectSocket();
+  fetchConversation();
+  fetchMessages();
+  connectSocket();
 
-    return () => {
-      socket.current?.close();
-    };
-  }, []);
+  return () => {
+    socket.current?.close();
+  };
+}, []);
 
   const connectSocket = () => {
     console.log("Connecting WebSocket...");
@@ -75,34 +77,58 @@ const freelancerId = Number(searchParams.get("freelancer"));
     };
   };
 
-  const fetchMessages = async () => {
-    try {
-      const token = localStorage.getItem("token");
+   const fetchMessages = async () => {
+  try {
+    const token = localStorage.getItem("token");
 
-      const res = await fetch(
-        `http://localhost:8080/messages/${params.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-     console.log(data);
-
-      console.log("Messages:", data);
-
-      if (Array.isArray(data)) {
-        setMessages(data);
-      } else {
-        setMessages([]);
+    const res = await fetch(
+      `http://localhost:8080/messages/${params.id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
+    );
 
-    } catch (err) {
-      console.error(err);
+    const data = await res.json();
+
+    console.log("Messages:", data);
+
+    if (Array.isArray(data)) {
+      setMessages(data);
+    } else {
       setMessages([]);
     }
-  };
+
+  } catch (err) {
+    console.error(err);
+    setMessages([]);
+  }
+}; 
+
+ const fetchConversation = async () => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(
+      `http://localhost:8080/conversations/${params.id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await res.json();
+
+    console.log("Conversation:", data);
+
+    setConversation(data);
+
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const sendMessage = () => {
     if (!message.trim()) return;
@@ -144,9 +170,9 @@ const freelancerId = Number(searchParams.get("freelancer"));
 
         <div className="border-b border-white/10 p-6">
 
-          <h1 className="text-3xl font-black">
-            Conversation #{params.id}
-          </h1>
+         <h1 className="text-3xl font-black">
+             {conversation?.project?.title}
+           </h1>
 
         </div>
 
@@ -185,8 +211,10 @@ const freelancerId = Number(searchParams.get("freelancer"));
                 `}
               >
 
-                <p className="text-sm text-gray-300">
-                  User {msg.sender_id}
+               <p className="text-sm text-gray-300">
+                  {Number(msg.sender_id) === Number(user.id)
+                    ? "You"
+                    : conversation?.client?.name}
                 </p>
 
                 <p className="mt-2 break-words">
@@ -201,6 +229,7 @@ const freelancerId = Number(searchParams.get("freelancer"));
           <div ref={messagesEndRef} />
 
         </div>
+        
 
         {/* Bottom Input */}
 

@@ -157,7 +157,7 @@ export default function MessagesPage() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-white overflow-hidden">
+    <main className="h-screen bg-black text-white overflow-hidden">
 
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_top,#2563eb_0%,#0f172a_35%,#000000_75%)]" />
 
@@ -192,9 +192,9 @@ export default function MessagesPage() {
 
       </nav>
 
-      <section className="relative z-10 px-8 py-10">
+      <section className="relative z-10 px-8 py-6 h-[calc(100vh-100px)]">
 
-        <div className="max-w-7xl mx-auto">
+       <div className="max-w-7xl mx-auto h-full">
 
           <h2 className="text-5xl font-black mb-3">
             Messages
@@ -204,10 +204,23 @@ export default function MessagesPage() {
             Chat with freelancers, discuss project updates and milestones.
           </p>
 
-          <div className="grid grid-cols-12 gap-6 h-[75vh]">
+          <div className="grid grid-cols-12 gap-6 h-full">
             {/* Conversations List */}
 
-            <div className="col-span-4 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-xl overflow-hidden flex flex-col">
+          <div
+              className="
+                col-span-4
+                bg-white/5
+                border
+                border-white/10
+                rounded-3xl
+                backdrop-blur-xl
+                overflow-hidden
+                flex
+                flex-col
+                h-full
+              "
+            >
 
               <div className="p-5 border-b border-white/10">
                 <h3 className="text-xl font-bold">
@@ -302,18 +315,20 @@ export default function MessagesPage() {
 
             {/* Chat Window */}
 
-            <div
-              className="
-                col-span-8
-                bg-white/5
-                border
-                border-white/10
-                rounded-3xl
-                backdrop-blur-xl
-                flex
-                flex-col
-              "
-            >
+                    <div
+                      className="
+                        col-span-8
+                        bg-white/5
+                        border
+                        border-white/10
+                        rounded-3xl
+                        backdrop-blur-xl
+                        flex
+                        flex-col
+                        h-full
+                        overflow-hidden
+                      "
+                    >
 
               <div className="p-5 border-b border-white/10">
                 <h3 className="text-xl font-bold">
@@ -404,7 +419,7 @@ export default function MessagesPage() {
 
               {selectedConversation ? (
 
-                <div className="p-5 border-t border-white/10">
+               <div className="p-5 border-t border-white/10 flex-shrink-0">
 
                   <div className="flex gap-4">
 

@@ -1,35 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import {
+  getConversations,
+  getMessages,
+} from "@/services/message";
 
-export default function FreelancerMessagesPage() {
-
-  const router = useRouter();
-
+export default function MessagesPage() {
   const [conversations, setConversations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [user, setUser] = useState(null);
 
+  const socket = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  const userId = user?.id;
+
+  // Load logged in user
   useEffect(() => {
-    fetchConversations();
+    const storedUser = JSON.parse(
+      localStorage.getItem("user") || "{}"
+    );
+
+    setUser(storedUser);
   }, []);
 
-  const fetchConversations = async () => {
+  // Load conversations
+  useEffect(() => {
+    loadConversations();
+  }, []);
 
+  const loadConversations = async () => {
     try {
-
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(
-        "http://localhost:8080/conversations",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await res.json();
+      const data = await getConversations();
 
       console.log("Conversations:", data);
 
@@ -38,204 +44,442 @@ export default function FreelancerMessagesPage() {
       } else {
         setConversations([]);
       }
-
     } catch (err) {
-
       console.error(err);
-      setConversations([]);
+    }
+  };
 
-    } finally {
+  // Open websocket for selected conversation
+  useEffect(() => {
+    if (!selectedConversation || !userId) return;
 
-      setLoading(false);
-
+    if (socket.current) {
+      socket.current.close();
     }
 
+    socket.current = new WebSocket(
+      `ws://localhost:8080/ws/${selectedConversation.id}/${userId}`
+    );
+
+    socket.current.onopen = () => {
+      console.log("✅ WebSocket Connected");
+    };
+
+    socket.current.onmessage = (event) => {
+      console.log("Incoming WebSocket:", event.data);
+      const msg = JSON.parse(event.data);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          sender_id: msg.sender_id,
+          receiver_id: msg.receiver_id,
+          content: msg.message,
+        },
+      ]);
+
+      loadConversations();
+    };
+
+    socket.current.onerror = (err) => {
+      console.error("WebSocket Error:", err);
+    };
+
+    socket.current.onclose = () => {
+      console.log("WebSocket Closed");
+    };
+
+    return () => {
+      socket.current?.close();
+    };
+  }, [selectedConversation, userId]);
+
+  const openConversation = async (conversation) => {
+    setSelectedConversation(conversation);
+
+    try {
+      const history = await getMessages(
+        conversation.id
+      );
+
+      if (Array.isArray(history)) {
+        setMessages(history);
+      } else {
+        setMessages([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setMessages([]);
+    }
+  };
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages]);
+
+  const sendMessage = () => {
+    if (!input.trim()) return;
+
+    if (
+      !socket.current ||
+      socket.current.readyState !== WebSocket.OPEN
+    ) {
+      alert("Socket not connected");
+      return;
+    }
+
+    let receiverId;
+
+    if (
+      Number(selectedConversation.client_id) ===
+      Number(userId)
+    ) {
+      receiverId =
+        selectedConversation.freelancer_id;
+    } else {
+      receiverId =
+        selectedConversation.client_id;
+    }
+
+    socket.current.send(
+      JSON.stringify({
+        receiver_id: receiverId,
+        message: input,
+      })
+    );
+
+
+
+    setInput("");
   };
 
   return (
-
-    <main className="min-h-screen bg-black text-white">
+    <main className="h-screen bg-black text-white overflow-hidden">
 
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_top,#2563eb_0%,#0f172a_35%,#000000_75%)]" />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-8 py-10">
+      <nav className="relative z-10 flex items-center justify-between px-8 py-6 border-b border-white/10 backdrop-blur-md">
 
-        <h1 className="text-5xl font-black mb-10">
+        <h1 className="text-5xl font-black tracking-wide">
+          <span style={{ color: "cyan" }}>
+            Freelance
+          </span>
 
-          My Conversations
-
+          <span className="text-white">
+            X
+          </span>
         </h1>
 
-        {loading && (
+        <div className="flex items-center gap-4">
 
-          <p className="text-gray-400">
+          <Link
+            href="/freelancer/dashboard"
+            className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/10 transition"
+          >
+            Dashboard
+          </Link>
 
-            Loading conversations...
-
-          </p>
-
-        )}
-
-        {!loading && conversations.length === 0 && (
-
-          <div className="bg-white/5 border border-white/10 rounded-3xl p-10 text-center">
-
-            No conversations yet.
-
+          <div className="h-11 w-11 rounded-full bg-[#1424ff] flex items-center justify-center font-bold">
+            {user
+              ? user.name?.charAt(0).toUpperCase()
+              : "U"}
           </div>
 
-        )}
+        </div>
 
-        <div className="space-y-6">
+      </nav>
 
-          {conversations.map((conversation) => (
+      <section className="relative z-10 px-8 py-6 h-[calc(100vh-100px)]">
 
-            <div
-              key={conversation.id}
-             onClick={() => {
-  console.log("Card clicked", conversation.id);
-  router.push(
-  `/freelancer/messages/${conversation.id}?client=${conversation.client_id}&freelancer=${conversation.freelancer_id}`
-);
-}}
+       <div className="max-w-7xl mx-auto h-full">
+
+          <h2 className="text-5xl font-black mb-3">
+            Messages
+          </h2>
+
+          <p className="text-gray-400 mb-10">
+            Chat with freelancers, discuss project updates and milestones.
+          </p>
+
+          <div className="grid grid-cols-12 gap-6 h-full">
+            {/* Conversations List */}
+
+          <div
               className="
-                cursor-pointer
+                col-span-4
                 bg-white/5
                 border
                 border-white/10
                 rounded-3xl
-                p-8
-                hover:bg-white/10
-                transition
+                backdrop-blur-xl
+                overflow-hidden
+                flex
+                flex-col
+                h-full
               "
             >
 
-              <div className="flex justify-between items-center">
+              <div className="p-5 border-b border-white/10">
+                <h3 className="text-xl font-bold">
 
-                <div>
+                  {selectedConversation
+                    ? selectedConversation.project?.title
+                    : "Select a Conversation"}
 
-                  <h2 className="text-2xl font-bold">
+                </h3>
 
-                    Conversation #{conversation.id}
-
-                  </h2>
-                                    <p className="text-gray-400 mt-2">
-
-                    Project ID : {conversation.project_id}
-
-                  </p>
-
-                </div>
-
-                <span
-                  className="
-                    px-4
-                    py-2
-                    rounded-full
-                    bg-blue-500/20
-                    text-blue-400
-                  "
-                >
-                  Open Chat
-                </span>
 
               </div>
 
-              <div className="mt-6">
+              <div className="flex-1 overflow-y-auto">
 
-                <p className="text-gray-400 mb-2">
+                {conversations.length === 0 ? (
 
-                  Last Message
+                  <div className="p-5 text-gray-400">
+                    No conversations yet.
+                  </div>
 
-                </p>
+                ) : (
 
-                <div
-                  className="
-                    bg-black/20
-                    rounded-2xl
-                    p-5
-                  "
-                >
+                  conversations.map((conv) => (
 
-                  {conversation.last_message ? (
+                    <div
+                      key={conv.id}
+                      onClick={() => openConversation(conv)}
+                      className={`
 
-                    <p className="text-white">
+                        cursor-pointer
+                        p-5
+                        border-b
+                        border-white/5
+                        transition
+                        hover:bg-white/5
 
-                      {conversation.last_message}
+                        ${selectedConversation?.id === conv.id
+                          ? "bg-white/10"
+                          : ""
+                        }
 
-                    </p>
+                      `}
+                    >
 
-                  ) : (
+                      <div className="flex items-center gap-4">
 
-                    <p className="text-gray-500">
+                                  <div
+                                          className="
+                                            h-12
+                                            w-12
+                                            rounded-full
+                                            bg-[#1424ff]
+                                            flex
+                                            items-center
+                                            justify-center
+                                            font-bold
+                                          "
+                                        >
 
-                      No messages yet
+                                          {conv.client_id === userId
+                                            ? conv.freelancer?.name?.charAt(0).toUpperCase()
+                                            : conv.client?.name?.charAt(0).toUpperCase()}
 
-                    </p>
+                                      </div>
 
-                  )}
+                        <div className="flex-1">
 
-                </div>
+                          <h4 className="font-semibold">
+                            {conv.project?.title}
+                          </h4>
 
-              </div>
+                          <p className="text-sm text-gray-400 truncate">
+                            {conv.client_id === userId
+                              ? conv.freelancer?.name
+                              : conv.client?.name}
+                          </p>
 
-              <div className="mt-6 flex justify-between items-center">
+                        </div>
 
-                <p className="text-sm text-gray-500">
+                      </div>
 
-                  Freelancer ID : {conversation.freelancer_id}
+                    </div>
 
-                </p>
+                  ))
 
-                <p className="text-sm text-gray-500">
-
-                  Client ID : {conversation.client_id}
-
-                </p>
-
-              </div>
-
-              <div className="mt-6 flex justify-end">
-
-                <button
-                  onClick={(e) => {
-  e.stopPropagation();
-
-  console.log("✅ Button clicked");
-  console.log("Conversation ID:", conversation.id);
-
-   router.push(
-  `/freelancer/messages/${conversation.id}?client=${conversation.client_id}&freelancer=${conversation.freelancer_id}`
-);
-}}
-                  
-                  className="
-                    px-6
-                    py-3
-                    rounded-xl
-                    bg-[#1424ff]
-                    hover:bg-blue-700
-                    transition
-                    font-semibold
-                  "
-                >
-
-                  Open Conversation
-
-                </button>
+                )}
 
               </div>
 
             </div>
 
-          ))}
+            {/* Chat Window */}
+
+                    <div
+                      className="
+                        col-span-8
+                        bg-white/5
+                        border
+                        border-white/10
+                        rounded-3xl
+                        backdrop-blur-xl
+                        flex
+                        flex-col
+                        h-full
+                        overflow-hidden
+                      "
+                    >
+
+              <div className="p-5 border-b border-white/10">
+                <h3 className="text-xl font-bold">
+
+                  {selectedConversation
+                    ? selectedConversation.project?.title
+                    : "Select a Conversation"}
+
+                </h3>
+
+              </div>
+
+              {/* Messages */}
+
+              <div
+                className="
+                  flex-1
+                  overflow-y-auto
+                  p-6
+                  space-y-4
+                "
+              >
+                {messages.length === 0 ? (
+
+                  <div className="flex h-full items-center justify-center text-gray-500">
+                    No messages yet.
+                  </div>
+
+                ) : (
+
+                  messages.map((msg) => {
+
+                    const isMine =
+                      Number(msg.sender_id) === Number(userId);
+
+                    return (
+
+                      <div
+                        key={msg.id}
+                        className={`flex ${isMine
+                          ? "justify-end"
+                          : "justify-start"
+                          }`}
+                      >
+
+                        <div
+                          className={`
+                            max-w-[70%]
+                            rounded-2xl
+                            px-5
+                            py-3
+                            ${isMine
+                              ? "bg-[#1424ff] text-white"
+                              : "bg-white/10 text-white"
+                            }
+                          `}
+                        >
+                          <p className="text-xs opacity-70 mb-2">
+                            {isMine
+                              ? "You"
+                              :  selectedConversation?.client?.name}
+                          </p>
+
+
+                          <p className="break-words whitespace-pre-wrap">
+
+                            {msg.content}
+
+                          </p>
+
+                        </div>
+
+                      </div>
+
+                    );
+
+                  })
+
+                )}
+
+                <div ref={messagesEndRef} />
+
+              </div>
+
+              {/* Bottom Input */}
+
+              {selectedConversation ? (
+
+               <div className="p-5 border-t border-white/10 flex-shrink-0">
+
+                  <div className="flex gap-4">
+
+                    <input
+                      type="text"
+                      value={input}
+                      onChange={(e) =>
+                        setInput(e.target.value)
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          sendMessage();
+                        }
+                      }}
+                      placeholder="Type your message..."
+                      className="
+                        flex-1
+                        rounded-2xl
+                        bg-black/20
+                        border
+                        border-white/10
+                        px-5
+                        py-4
+                        outline-none
+                        focus:border-[#1424ff]
+                      "
+                    />
+
+                    <button
+                      onClick={sendMessage}
+                      className="
+                        px-8
+                        py-4
+                        rounded-2xl
+                        bg-[#1424ff]
+                        hover:bg-blue-700
+                        transition
+                        font-bold
+                      "
+                    >
+                      Send
+                    </button>
+
+                  </div>
+
+                </div>
+
+              ) : (
+
+                <div className="flex flex-1 items-center justify-center text-gray-500">
+                  Select a conversation to start chatting.
+                </div>
+
+              )}
+            </div>
+
+          </div>
 
         </div>
 
-      </div>
+      </section>
 
     </main>
-
   );
-
-}
+} 

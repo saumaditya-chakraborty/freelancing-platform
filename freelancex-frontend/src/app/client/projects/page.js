@@ -148,6 +148,24 @@ const updateStatus = async (projectId, status) => {
     Project Status
   </p>
 
+{project.status === "assigned" ? (
+
+  <div
+    className="
+      w-full
+      py-2
+      rounded-xl
+      bg-black-600
+      text-white
+      text-center
+      font-semibold
+    "
+  >
+   
+  </div>
+
+) : (
+
   <select
     value={project.status || "open"}
     onChange={(e) =>
@@ -165,36 +183,140 @@ const updateStatus = async (projectId, status) => {
     "
   >
     <option value="open">Open</option>
-    <option value="assigned">Assigned</option>
     <option value="in_progress">In Progress</option>
     <option value="completed">Completed</option>
     <option value="closed">Closed</option>
   </select>
+
+)}
 </div>
 
                 {/* Buttons */}
-                <div className="mt-6 flex flex-col gap-3">
+                {/* Buttons */}
+<div className="mt-6 flex flex-col gap-3">
 
-                  <button
-                    onClick={() =>
-                      router.push(
-                        `/client/projects/${project.id}/proposals`
-                      )
-                    }
-                    className="
-                      w-full
-                      py-3
-                      rounded-xl
-                      bg-[#1424ff]
-                      font-semibold
-                      hover:opacity-90
-                      transition
-                    "
-                  >
-                    View Proposals
-                  </button>
+  {/* OPEN / IN PROGRESS / CLOSED */}
+  {(project.status === "open" ||
+    project.status === "in_progress" ||
+    project.status === "closed") && (
 
-                </div>
+    <button
+      onClick={() =>
+        router.push(
+          `/client/projects/${project.id}/proposals`
+        )
+      }
+      className="
+        w-full
+        py-3
+        rounded-xl
+        bg-[#1424ff]
+        font-semibold
+        hover:opacity-90
+        transition
+      "
+    >
+      View Proposals
+    </button>
+
+  )}
+
+  {/* ASSIGNED */}
+  {project.status === "assigned" && (
+
+    <>
+      <button
+        disabled
+        className="
+          w-full
+          py-3
+          rounded-xl
+          bg-red-600
+          text-white
+          font-semibold
+          cursor-not-allowed
+        "
+      >
+        Project Assigned
+      </button>
+
+      <button
+        onClick={() => router.push("/client/messages")}
+        className="
+          w-full
+          py-3
+          rounded-xl
+          bg-blue-600
+          hover:bg-blue-700
+          transition
+          font-semibold
+        "
+      >
+        Message Freelancer
+      </button>
+
+    </>
+
+  )}
+
+  {/* COMPLETED */}
+  {project.status === "completed" && (
+
+    <>
+      <button
+        disabled
+        className="
+          w-full
+          py-3
+          rounded-xl
+          bg-green-600
+          text-white
+          font-semibold
+          cursor-not-allowed
+        "
+      >
+        Project Completed
+      </button>
+
+      <button
+        onClick={() => router.push("/client/messages")}
+        className="
+          w-full
+          py-3
+          rounded-xl
+          bg-blue-600
+          hover:bg-blue-700
+          transition
+          font-semibold
+        "
+      >
+        Message Freelancer
+      </button>
+
+      <button
+        onClick={() =>
+          router.push(`/client/review/${project.id}`)
+        }
+        className="
+          w-full
+          py-3
+          rounded-xl
+          bg-yellow-500
+          hover:bg-yellow-600
+          text-black
+          font-bold
+          transition
+        "
+      >
+        ⭐ Rate Freelancer
+      </button>
+
+    </>
+
+  )}
+
+</div>
+
 
               </div>
             </div>

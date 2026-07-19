@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"fmt"
 	"strconv"
+
 	"freelancing-platform/config"
 	"freelancing-platform/models"
 
@@ -243,7 +245,7 @@ func AcceptProposal(c *fiber.Ctx) error {
 
 	if err := tx.Model(&models.Project{}).
 		Where("id = ?", project.ID).
-		Update("status", "in_progress").Error; err != nil {
+		Update("status", "assigned").Error; err != nil {
 
 		tx.Rollback()
 
@@ -251,6 +253,45 @@ func AcceptProposal(c *fiber.Ctx) error {
 			"error": "failed to update project",
 		})
 	}
+
+	var client models.User
+
+if err := tx.First(&client, project.ClientID).Error; err != nil {
+
+	tx.Rollback()
+
+	return c.Status(500).JSON(fiber.Map{
+		"error": "client not found",
+	})
+    
+}
+
+     fmt.Println("========== NEW NOTIFICATION ==========")
+fmt.Println("Project:", project.Title)
+fmt.Println("Client:", client.Name)
+	  notification := models.Notification{
+	UserID: proposal.FreelancerID,
+
+	Title: "Project Assigned Successfully",
+
+	Message: fmt.Sprintf(
+		"Your proposal for \"%s\" has been accepted. You have been assigned this project. Please get in touch with %s for further project details, milestones, and timeline.",
+		project.Title,
+		client.Name,
+	),
+
+	IsRead: false,
+}
+
+if err := tx.Create(&notification).Error; err != nil {
+
+    tx.Rollback()
+
+    return c.Status(500).JSON(fiber.Map{
+        "error": "failed to create notification",
+    })
+
+}
 
 	tx.Commit()
 
@@ -271,6 +312,8 @@ func GetProjectProposals(c *fiber.Ctx) error {
 	var proposals []models.Proposal
 
 	if err := config.DB.
+		Preload("Project").
+		Preload("Freelancer").
 		Where("project_id = ?", projectID).
 		Find(&proposals).Error; err != nil {
 

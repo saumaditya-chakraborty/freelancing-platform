@@ -27,10 +27,12 @@ func main() {
 		&models.Proposal{},
 		&models.Message{},
 		&models.Milestone{},
+		&models.Notification{},
 		&models.Payment{},
 		&models.Review{},
 		&models.Message{},
 		&models.Conversation{},
+		&models.Review{},
 	
 
 
@@ -61,8 +63,9 @@ func main() {
 	routes.MessageRoutes(app)
 	routes.SetupMilestoneRoutes(app)
 	routes.SetupPaymentRoutes(app)
-	routes.SetupReviewRoutes(app)
+	routes.ReviewRoutes(app)
 	routes.SetupAdminRoutes(app)
+	routes.NotificationRoutes(app)
 
 
 	

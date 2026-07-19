@@ -1,9 +1,10 @@
 "use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ClientDashboard() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
 
   const [dashboardData, setDashboardData] = useState({
@@ -17,9 +18,16 @@ export default function ClientDashboard() {
     user: null,
   });
 
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
+useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    router.replace("/login");
+    return;
+  }
+
+  fetchDashboard();
+}, []);
 
   const fetchDashboard = async () => {
     try {
@@ -50,15 +58,15 @@ export default function ClientDashboard() {
       );
 
       const activeHires = myProjects.filter(
-        (project) => project.status === "in_progress"
+        (project) => project.status === "assigned"
       ).length;
 
-   const proposalsReceived = proposals.filter((proposal) =>
-  myProjects.some(
-    (project) =>
-      Number(project.id) === Number(proposal.project_id)
-  )
-).length;
+      const proposalsReceived = proposals.filter((proposal) =>
+        myProjects.some(
+          (project) =>
+            Number(project.id) === Number(proposal.project_id)
+        )
+      ).length;
 
       const totalBudget = myProjects.reduce(
         (sum, project) => sum + (project.budget || 0),
@@ -68,18 +76,26 @@ export default function ClientDashboard() {
       setDashboardData({
         user: storedUser,
         projects: myProjects,
-       stats: {
-  projectsPosted: myProjects.length,
-  activeHires,
-  proposalsReceived,
-  escrowBalance: totalBudget,
-},
+        stats: {
+          projectsPosted: myProjects.length,
+          activeHires,
+          proposalsReceived,
+          escrowBalance: totalBudget,
+        },
       });
     } catch (error) {
       console.error("Dashboard Error:", error);
     } finally {
       setLoading(false);
     }
+  };
+  const handleLogout = () => {
+
+ localStorage.removeItem("token");
+localStorage.removeItem("user");
+
+router.replace("/login");
+
   };
 
   if (loading) {
@@ -116,6 +132,20 @@ export default function ClientDashboard() {
         <div className="flex gap-4 items-center">
           <button className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/10 transition">
             Notifications
+          </button>
+          <button
+            onClick={handleLogout}
+            className="
+                    px-4
+                    py-2
+                    rounded-xl
+                    bg-yellow-600
+                    hover:bg-yellow-900
+                    transition
+                    font-normal
+                  "
+           >
+            Log-out
           </button>
 
           <div className="h-11 w-11 rounded-full bg-[#1424ff] flex items-center justify-center font-bold">

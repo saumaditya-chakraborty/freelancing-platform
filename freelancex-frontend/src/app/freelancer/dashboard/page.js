@@ -1,9 +1,9 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import Link from "next/link";
-
+import { useRouter } from "next/navigation";
 export default function FreelancerDashboard() {
+   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
   const [dashboardData, setDashboardData] = useState({
@@ -17,10 +17,16 @@ export default function FreelancerDashboard() {
     proposals: [],
     user: null,
   });
+useEffect(() => {
+  const token = localStorage.getItem("token");
 
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
+  if (!token) {
+    router.replace("/login");
+    return;
+  }
+
+  fetchDashboard();
+}, []);
 
   const fetchDashboard = async () => {
     try {
@@ -95,6 +101,15 @@ export default function FreelancerDashboard() {
     }
   };
 
+  const handleLogout = () => {
+
+  localStorage.removeItem("token");
+localStorage.removeItem("user");
+
+router.push("/login");
+
+};
+
   if (loading) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center text-white">
@@ -131,10 +146,32 @@ export default function FreelancerDashboard() {
 </h1>
 
         <div className="flex gap-4 items-center">
-
-          <button className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/10 transition">
-            Notifications
+              <button
+                  onClick={() => {
+                    console.log("Notification button clicked");
+                    router.push("/freelancer/notifications");
+                  }}
+                >
+                  Notifications
+                </button>
+          
+                    <button
+            onClick={handleLogout}
+            className="
+              px-4
+              py-2
+              rounded-xl
+              bg-yellow-600
+              hover:bg-yellow-900
+              transition
+              font-semibold
+            "
+          >
+            Log-out
           </button>
+
+
+
 
           <div className="h-11 w-11 rounded-full bg-[#1424ff] flex items-center justify-center font-bold">
             {dashboardData.user?.name

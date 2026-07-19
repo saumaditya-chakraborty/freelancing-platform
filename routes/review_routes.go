@@ -1,20 +1,37 @@
 package routes
 
 import (
+	   "log"
 	"freelancing-platform/handlers"
+	"freelancing-platform/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupReviewRoutes(app *fiber.App) {
+func ReviewRoutes(app *fiber.App) {
+	 log.Println("Review routes registered")
 
-	app.Post(
+	reviews := app.Group(
 		"/reviews",
-		handlers.LeaveReview,
+		middleware.Protected(),
 	)
 
-	app.Get(
-		"/reviews/:userId",
-		handlers.GetReviews,
+	// POST /reviews/project/15
+	reviews.Post(
+		"/project/:id",
+		middleware.RequireRole("client"),
+		handlers.CreateReview,
+	)
+
+	// GET /reviews/freelancer/8
+	reviews.Get(
+		"/freelancer/:id",
+		handlers.GetFreelancerReviews,
+	)
+
+	// GET /reviews/freelancer/8/rating
+	reviews.Get(
+		"/freelancer/:id/rating",
+		handlers.GetFreelancerRating,
 	)
 }

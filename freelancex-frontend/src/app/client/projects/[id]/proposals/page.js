@@ -6,6 +6,7 @@ import {
   useRouter,
   useSearchParams,
 } from "next/navigation";
+import StarRating from "@/components/StarRating";
 export default function ProjectProposalsPage() {
   const params = useParams();
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function ProjectProposalsPage() {
   // const conversationId = searchParams.get("conversation");
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [ratings, setRatings] = useState({});
 
   useEffect(() => {
     fetchProposals();
@@ -34,18 +36,57 @@ export default function ProjectProposalsPage() {
       const data = await res.json();
       console.log("PROPOSALS DATA:", data);
       console.log("Is Array?", Array.isArray(data));
-      if (Array.isArray(data)) {
-        setProposals(data);
-      } else {
-        console.log("Backend returned:", data);
-        setProposals([]);
-      }
+     if (Array.isArray(data)) {
+
+  setProposals(data);
+
+  for (const proposal of data) {
+    fetchFreelancerRating(proposal.freelancer_id);
+  }
+
+} else {
+
+  console.log("Backend returned:", data);
+  setProposals([]);
+
+}
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
   };
+  const fetchFreelancerRating = async (freelancerId) => {
+
+  try {
+
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(
+      `http://localhost:8080/reviews/freelancer/${freelancerId}/rating`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!res.ok) return;
+
+    const data = await res.json();
+
+    setRatings((prev) => ({
+      ...prev,
+      [freelancerId]: data,
+    }));
+
+  } catch (err) {
+
+    console.error(err);
+
+  }
+
+};
 
   const createConversation = async (proposal) => {
     try {
@@ -91,6 +132,46 @@ export default function ProjectProposalsPage() {
     }
   };
 
+  const assignProject = async (proposalId) => {
+
+    try {
+
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(
+            `http://localhost:8080/proposals/${proposalId}/accept`,
+            {
+                method: "PATCH",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(data.error);
+            return;
+        }
+
+        alert("Project assigned successfully!");
+        router.push("/client/dashboard");
+
+        fetchProposals();
+
+    } catch (err) {
+
+        console.error(err);
+
+    }
+
+};
+
+const viewReviews = (freelancerId) => {
+  router.push(`/client/freelancer/${freelancerId}/reviews`);
+};
+
   return (
     <main className="min-h-screen bg-black text-white px-8 py-10">
 
@@ -130,17 +211,42 @@ export default function ProjectProposalsPage() {
               "
             >
 
-              <div className="flex justify-between items-center">
+                 <div className="flex justify-between items-start">
 
-                <h2 className="text-2xl font-bold">
-                  Freelancer #{proposal.freelancer_id}
-                </h2>
+  <div>
 
-                <span className="px-4 py-2 rounded-full bg-yellow-500/20 text-yellow-400">
-                  {proposal.status}
-                </span>
+    <h2 className="text-2xl font-bold">
+      {proposal.freelancer?.name || `Freelancer #${proposal.freelancer_id}`}
+    </h2>
 
-              </div>
+    <div className="mt-2 flex items-center gap-3">
+
+      <StarRating
+        rating={
+          ratings[proposal.freelancer_id]?.average_rating || 0
+        }
+        editable={false}
+        size={20}
+      />
+
+      <span className="text-gray-400 text-sm">
+        {(ratings[proposal.freelancer_id]?.average_rating || 0).toFixed(1)}
+        {" "}
+        (
+        {ratings[proposal.freelancer_id]?.total_reviews || 0}
+        {" "}
+        Reviews)
+      </span>
+
+    </div>
+
+  </div>
+
+  <span className="px-4 py-2 rounded-full bg-yellow-500/20 text-yellow-400">
+    {proposal.status}
+  </span>
+
+</div>
 
               <div className="mt-6 grid md:grid-cols-2 gap-6">
 
@@ -178,34 +284,50 @@ export default function ProjectProposalsPage() {
 
               </div>
 
-              <div className="mt-6 flex gap-4">
+             <div className="mt-6 flex flex-wrap gap-4">
 
-                <button
-                  onClick={() => createConversation(proposal)}
-                  className="
-                    px-6
-                    py-3
-                    rounded-xl
-                    bg-[#1424ff]
-                    font-semibold
-                  "
-                >
-                  Chat Freelancer
-                </button>
+  <button
+    onClick={() => viewReviews(proposal.freelancer_id)}
+    className="
+      px-6
+      py-3
+      rounded-xl
+      bg-purple-600
+      hover:bg-purple-700
+      transition
+      font-semibold
+    "
+  >
+    ⭐ View Reviews
+  </button>
 
-                <button
-                  className="
-                    px-6
-                    py-3
-                    rounded-xl
-                    bg-green-600
-                    font-semibold
-                  "
-                >
-                  Assign Project
-                </button>
+  <button
+    onClick={() => createConversation(proposal)}
+    className="
+      px-6
+      py-3
+      rounded-xl
+      bg-[#1424ff]
+      font-semibold
+    "
+  >
+    Chat Freelancer
+  </button>
 
-              </div>
+  <button
+    onClick={() => assignProject(proposal.id)}
+    className="
+      px-6
+      py-3
+      rounded-xl
+      bg-green-600
+      font-semibold
+    "
+  >
+    Assign Project
+  </button>
+
+</div>
 
             </div>
 

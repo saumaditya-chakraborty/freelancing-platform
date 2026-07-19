@@ -9,5 +9,6 @@ type Proposal struct {
 	DeliveryDays int     `json:"delivery_days"`
 	Status       string  `json:"status"`
 
-	Project Project `gorm:"foreignKey:ProjectID" json:"project"`
+	Project     Project `gorm:"foreignKey:ProjectID" json:"project"`
+	Freelancer  User    `gorm:"foreignKey:FreelancerID" json:"freelancer"`
 }
