@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	 "fmt"
+	"fmt"
 
-	 "github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2"
 )
 
 func RequireRole(role string) fiber.Handler {

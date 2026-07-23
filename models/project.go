@@ -8,4 +8,5 @@ type Project struct {
 	ClientID    uint   `json:"client_id"`
 	Status      string `json:"status"`
 	Client      User `gorm:"foreignKey:ClientID"`
+	SkillsRequired string `json:"skills_required"`
 }

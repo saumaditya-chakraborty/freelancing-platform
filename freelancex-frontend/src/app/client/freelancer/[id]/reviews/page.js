@@ -156,7 +156,7 @@ export default function FreelancerReviewsPage() {
 
                 <h3 className="font-semibold mb-3">
                   Review
-                </h3>
+                </h3> 
 
                 <p className="text-gray-300 leading-relaxed">
                   {review.comment}

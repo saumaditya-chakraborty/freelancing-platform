@@ -62,6 +62,7 @@ func GetProjects(c *fiber.Ctx) error {
 			"client_id":      project.ClientID,
 			"status":         project.Status,
 			"proposal_count": proposalCount,
+			"skills_required": project.SkillsRequired,
 		})
 	}
 

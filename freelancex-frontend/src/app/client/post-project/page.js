@@ -9,6 +9,7 @@ export default function PostProjectPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [budget, setBudget] = useState("");
+  const [skillsRequired, setSkillsRequired] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -29,6 +30,7 @@ export default function PostProjectPage() {
           title,
           description,
           budget: Number(budget),
+          skills_required: skillsRequired , 
         }),
       });
 
@@ -126,6 +128,27 @@ export default function PostProjectPage() {
                 required
               />
             </div>
+
+            {/* Skills Required */}
+
+<div>
+  <label className="block mb-2 text-sm text-gray-300">
+    Skills Required
+  </label>
+
+  <input
+    type="text"
+    placeholder="React, Next.js, Go, PostgreSQL"
+    value={skillsRequired}
+    onChange={(e) => setSkillsRequired(e.target.value)}
+    className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/10 outline-none focus:border-[#1424ff] transition"
+    required
+  />
+
+  <p className="text-xs text-gray-500 mt-2">
+    Separate each skill using commas.
+  </p>
+</div>
 
             {/* Button */}
             <button

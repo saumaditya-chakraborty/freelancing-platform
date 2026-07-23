@@ -109,6 +109,9 @@ localStorage.removeItem("user");
 router.push("/login");
 
 };
+   const openTimeTracker = (projectId) => {
+    router.push(`/freelancer/time-tracker/${projectId}`);
+};
 
   if (loading) {
     return (
@@ -265,7 +268,7 @@ router.push("/login");
             Workspace
           </h2>
 
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-6">
 
             <Link
               href="/freelancer/projects"
@@ -319,6 +322,20 @@ router.push("/login");
               </p>
             </Link>
 
+            <Link
+  href="/freelancer/portfolio"
+  className="bg-white/5 border border-white/10 rounded-3xl p-8 hover:scale-105 transition"
+>
+  <h3 className="text-xl font-bold">
+    Portfolio
+  </h3>
+
+  <p className="mt-3 text-gray-400">
+    Showcase your completed work.
+  </p>
+</Link>
+            
+
           </div>
 
         </div>
@@ -361,9 +378,28 @@ router.push("/login");
 
                       </div>
 
-                      <span className="px-4 py-2 rounded-xl bg-blue-500/20 text-blue-400">
-                        {project.status}
-                      </span>
+                          <div className="flex items-center gap-3">
+
+    <span className="px-4 py-2 rounded-xl bg-blue-500/20 text-blue-400">
+        {project.status}
+    </span>
+
+    <button
+        onClick={() => openTimeTracker(project.id)}
+        className="
+            px-5
+            py-2
+            rounded-xl
+            bg-green-600
+            hover:bg-green-700
+            transition
+            font-semibold
+        "
+    >
+        Start Working
+    </button>
+
+</div>
 
                     </div>
                   </div>

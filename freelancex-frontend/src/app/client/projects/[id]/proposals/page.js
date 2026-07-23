@@ -172,6 +172,35 @@ const viewReviews = (freelancerId) => {
   router.push(`/client/freelancer/${freelancerId}/reviews`);
 };
 
+        function calculateSkillMatch(requiredSkills, freelancerSkills) {
+
+  if (!requiredSkills || !freelancerSkills) {
+    return 0;
+  }
+
+  const required = requiredSkills
+    .split(",")
+    .map(skill => skill.trim().toLowerCase())
+    .filter(Boolean);
+
+  const freelancer = freelancerSkills
+    .split(",")
+    .map(skill => skill.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (required.length === 0) {
+    return 0;
+  }
+
+  const matched = required.filter(skill =>
+    freelancer.includes(skill)
+  );
+
+  return Math.round(
+    (matched.length / required.length) * 100
+  );
+}
+
   return (
     <main className="min-h-screen bg-black text-white px-8 py-10">
 
@@ -197,7 +226,13 @@ const viewReviews = (freelancerId) => {
 
         <div className="space-y-6">
 
-          {proposals.map((proposal) => (
+          {proposals.map((proposal) => {
+                const recommendationScore = calculateSkillMatch(
+        proposal.project?.skills_required,
+        proposal.skills
+    );
+
+    return (
 
             <div
               key={proposal.id}
@@ -283,6 +318,28 @@ const viewReviews = (freelancerId) => {
                 </p>
 
               </div>
+              <div className="mt-6 bg-black/20 rounded-2xl p-6">
+
+  <h3 className="font-bold text-lg mb-3">
+    Freelancer Skills
+  </h3>
+
+  <p className="text-cyan-400 leading-relaxed">
+    {proposal.skills || "Not provided"}
+  </p>
+
+</div>
+<div className="mt-6 bg-black/20 rounded-2xl p-6">
+
+  <h3 className="font-bold text-lg mb-3">
+    Required Skills
+  </h3>
+
+  <p className="text-yellow-400 leading-relaxed">
+    {proposal.project?.skills_required || "Not specified"}
+  </p>
+
+</div>
 
              <div className="mt-6 flex flex-wrap gap-4">
 
@@ -329,13 +386,18 @@ const viewReviews = (freelancerId) => {
 
 </div>
 
-            </div>
+                     </div>
 
-          ))}
+          );
+
+        })}
 
         </div>
 
       </div>
+
     </main>
+
   );
+
 }

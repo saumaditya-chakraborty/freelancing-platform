@@ -8,7 +8,8 @@ type Proposal struct {
 	CoverLetter  string  `json:"cover_letter"`
 	DeliveryDays int     `json:"delivery_days"`
 	Status       string  `json:"status"`
+	Skills       string  `json:"skills"`
 
-	Project     Project `gorm:"foreignKey:ProjectID" json:"project"`
-	Freelancer  User    `gorm:"foreignKey:FreelancerID" json:"freelancer"`
+	Project    Project `gorm:"foreignKey:ProjectID" json:"project"`
+	Freelancer User    `gorm:"foreignKey:FreelancerID" json:"freelancer"`
 }

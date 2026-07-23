@@ -9,57 +9,49 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 )
-
 func CreateProposal(c *fiber.Ctx) error {
 
-	var proposal models.Proposal
+    var proposal models.Proposal
 
-	freelancerID, _ := c.Locals("userID").(uint)
+    freelancerID, _ := c.Locals("userID").(uint)
 
-	if err := c.BodyParser(&proposal); err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"error": "invalid request body",
-		})
-	}
+    // READ REQUEST BODY
+    if err := c.BodyParser(&proposal); err != nil {
+        return c.Status(400).JSON(fiber.Map{
+            "error": "invalid request body",
+        })
+    }
 
-	
+    proposal.FreelancerID = freelancerID
+    proposal.Status = "pending"
 
-	// prevent duplicate bids
-	var existing models.Proposal
+    // prevent duplicate proposals
+    var existing models.Proposal
 
-	err := config.DB.
-		Where(
-			"project_id = ? AND freelancer_id = ?",
-			proposal.ProjectID,
-			freelancerID,
-		).
-		First(&existing).Error
+    err := config.DB.
+        Where("project_id = ? AND freelancer_id = ?",
+            proposal.ProjectID,
+            freelancerID).
+        First(&existing).Error
 
-	if err == nil {
-		return c.Status(400).JSON(fiber.Map{
-			"error": "you already submitted a proposal",
-		})
-	}
+    if err == nil {
+        return c.Status(400).JSON(fiber.Map{
+            "error": "you already submitted a proposal",
+        })
+    }
 
-	proposal.FreelancerID = freelancerID
-	proposal.Status = "pending"
+    if err := config.DB.Create(&proposal).Error; err != nil {
+        return c.Status(500).JSON(fiber.Map{
+            "error": err.Error(),
+        })
+    }
 
-	if err := config.DB.Create(&proposal).Error; err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "failed to create proposal",
-		})
-	}
+    config.DB.
+        Model(&models.Project{}).
+        Where("id = ?", proposal.ProjectID).
+        Update("status", "under_review")
 
-	config.DB.
-	Model(&models.Project{}).
-	Where("id = ?", proposal.ProjectID).
-	Update("status", "reviewing_proposals")
-
-	// DEBUG RESPONSE
-	return c.Status(201).JSON(fiber.Map{
-		"DEBUG":    "NEW_HANDLER",
-		"proposal": proposal,
-	})
+    return c.Status(201).JSON(proposal)
 }
 
 func GetProposals(c *fiber.Ctx) error {
@@ -135,7 +127,7 @@ func UpdateProposal(c *fiber.Ctx) error {
 	proposal.BidAmount = updatedProposal.BidAmount
 	proposal.CoverLetter = updatedProposal.CoverLetter
 	proposal.DeliveryDays = updatedProposal.DeliveryDays
-
+    proposal.Skills = updatedProposal.Skills
 	if err := config.DB.Save(&proposal).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"error": "failed to update proposal",

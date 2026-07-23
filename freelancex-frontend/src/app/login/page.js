@@ -13,20 +13,39 @@ export default function LoginPage() {
 const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
 useEffect(() => {
-  const token = localStorage.getItem("token");
 
-  if (!token) return;
+    const token = localStorage.getItem("token");
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (!token) return;
 
-  if (user.role === "client") {
-    router.replace("/client/dashboard");
-  } else if (user.role === "freelancer") {
-    router.replace("/freelancer/dashboard");
-  } else if (user.role === "admin") {
-    router.replace("/admin/dashboard");
-  }
-}, []);
+    const userString = localStorage.getItem("user");
+
+    if (!userString || userString === "undefined") {
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        return;
+    }
+
+    let user;
+
+    try {
+        user = JSON.parse(userString);
+    } catch (err) {
+        console.error("Invalid user JSON", err);
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        return;
+    }
+
+    if (user.role === "client") {
+        router.replace("/client/dashboard");
+    } else if (user.role === "freelancer") {
+        router.replace("/freelancer/dashboard");
+    } else if (user.role === "admin") {
+        router.replace("/admin/dashboard");
+    }
+
+}, [router]);
 const handleLogin = async (e) => {
   e.preventDefault();
 

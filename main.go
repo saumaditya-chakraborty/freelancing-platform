@@ -33,6 +33,9 @@ func main() {
 		&models.Message{},
 		&models.Conversation{},
 		&models.Review{},
+		&models.Portfolio{},
+		&models.TimeTracking{},
+        &models.TimeLog{}, 
 	
 
 
@@ -66,6 +69,8 @@ func main() {
 	routes.ReviewRoutes(app)
 	routes.SetupAdminRoutes(app)
 	routes.NotificationRoutes(app)
+	routes.PortfolioRoutes(app)
+	routes.SetupTimeTrackingRoutes(app)
 
 
 	
