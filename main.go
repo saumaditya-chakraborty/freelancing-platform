@@ -17,6 +17,7 @@ func main() {
 
 	// 1. Connect to PostgreSQL
 	config.ConnectDB()
+	
 
 	// 2. Auto migrate all schemas (INCLUDING PHASE 1 WALLET SYSTEM)
 	log.Println("Syncing schemas with PostgreSQL...")
@@ -41,9 +42,13 @@ func main() {
 
 	)
 
+	
+
 	if err != nil {
 		log.Fatalf("Critical Error: Schema auto-migration failed: %v", err)
 	}
+
+	config.SeedAdmin()
 
 	log.Println("All schemas synced successfully")
 

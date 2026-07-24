@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"fmt"
+	
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -9,14 +9,11 @@ import (
 func RequireRole(role string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 
-		userRole := c.Locals("role")
+		userRole, ok := c.Locals("role").(string)
 
-		fmt.Println("Required:", role)
-		fmt.Println("Actual:", userRole)
-
-		if userRole != role {
-			return c.Status(403).JSON(fiber.Map{
-				"error": "access denied",
+		if !ok || userRole != role {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "Access denied",
 			})
 		}
 

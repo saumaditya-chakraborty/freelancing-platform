@@ -10,23 +10,23 @@ import (
 	"gorm.io/gorm"
 )
 
-// ==========================================
+// ======================================================
 // Helper
-// ==========================================
+// ======================================================
 
 func getFreelancerID(c *fiber.Ctx) uint {
 	return c.Locals("userID").(uint)
 }
 
-// ==========================================
+// ======================================================
 // START TIMER
 // POST /projects/:id/time/start
-// ==========================================
+// ======================================================
 
 func StartTimer(c *fiber.Ctx) error {
 
 	projectID, err := c.ParamsInt("id")
-	if err != nil {
+	if err != nil || projectID <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid project ID",
 		})
@@ -34,13 +34,22 @@ func StartTimer(c *fiber.Ctx) error {
 
 	freelancerID := getFreelancerID(c)
 
+	// Verify project exists
+	var project models.Project
+	if err := config.DB.First(&project, projectID).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Project not found",
+		})
+	}
+
+	tx := config.DB.Begin()
+
 	var tracking models.TimeTracking
 
-	err = config.DB.
+	err = tx.
 		Where("project_id = ? AND freelancer_id = ?", projectID, freelancerID).
 		First(&tracking).Error
 
-	// Create new tracking if it doesn't exist
 	if err == gorm.ErrRecordNotFound {
 
 		tracking = models.TimeTracking{
@@ -50,7 +59,8 @@ func StartTimer(c *fiber.Ctx) error {
 			TotalSeconds: 0,
 		}
 
-		if err := config.DB.Create(&tracking).Error; err != nil {
+		if err := tx.Create(&tracking).Error; err != nil {
+			tx.Rollback()
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": err.Error(),
 			})
@@ -58,19 +68,24 @@ func StartTimer(c *fiber.Ctx) error {
 
 	} else if err != nil {
 
+		tx.Rollback()
+
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 
 	} else {
 
-		if tracking.Status == "running" {
+		switch tracking.Status {
+
+		case "running":
+			tx.Rollback()
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "Timer already running",
 			})
-		}
 
-		if tracking.Status == "completed" {
+		case "completed":
+			tx.Rollback()
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "Timer already completed",
 			})
@@ -78,24 +93,27 @@ func StartTimer(c *fiber.Ctx) error {
 
 		tracking.Status = "running"
 
-		if err := config.DB.Save(&tracking).Error; err != nil {
+		if err := tx.Save(&tracking).Error; err != nil {
+			tx.Rollback()
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": err.Error(),
 			})
 		}
 	}
 
-	// Create a new work session
 	log := models.TimeLog{
 		TimeTrackingID: tracking.ID,
 		StartTime:      time.Now(),
 	}
 
-	if err := config.DB.Create(&log).Error; err != nil {
+	if err := tx.Create(&log).Error; err != nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
+
+	tx.Commit()
 
 	return c.JSON(fiber.Map{
 		"message":  "Timer started successfully",
@@ -103,15 +121,15 @@ func StartTimer(c *fiber.Ctx) error {
 	})
 }
 
-// ==========================================
+// ======================================================
 // PAUSE TIMER
 // PATCH /time/:id/pause
-// ==========================================
+// ======================================================
 
 func PauseTimer(c *fiber.Ctx) error {
 
 	trackingID, err := c.ParamsInt("id")
-	if err != nil {
+	if err != nil || trackingID <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid tracking ID",
 		})
@@ -131,12 +149,16 @@ func PauseTimer(c *fiber.Ctx) error {
 		})
 	}
 
+	tx := config.DB.Begin()
+
 	var log models.TimeLog
 
-	if err := config.DB.
+	if err := tx.
 		Where("time_tracking_id = ? AND end_time = ?", tracking.ID, time.Time{}).
 		Order("id DESC").
 		First(&log).Error; err != nil {
+
+		tx.Rollback()
 
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "No active session found",
@@ -150,7 +172,8 @@ func PauseTimer(c *fiber.Ctx) error {
 	log.EndTime = now
 	log.DurationSeconds = duration
 
-	if err := config.DB.Save(&log).Error; err != nil {
+	if err := tx.Save(&log).Error; err != nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -159,29 +182,31 @@ func PauseTimer(c *fiber.Ctx) error {
 	tracking.TotalSeconds += duration
 	tracking.Status = "paused"
 
-	if err := config.DB.Save(&tracking).Error; err != nil {
+	if err := tx.Save(&tracking).Error; err != nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
 
+	tx.Commit()
+
 	return c.JSON(fiber.Map{
 		"message":       "Timer paused successfully",
 		"workedSeconds": duration,
 		"totalSeconds":  tracking.TotalSeconds,
+		"tracking":      tracking,
 	})
 }
-
-
-// ==========================================
+// ======================================================
 // RESUME TIMER
 // PATCH /time/:id/resume
-// ==========================================
+// ======================================================
 
 func ResumeTimer(c *fiber.Ctx) error {
 
 	trackingID, err := c.ParamsInt("id")
-	if err != nil {
+	if err != nil || trackingID <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid tracking ID",
 		})
@@ -201,9 +226,12 @@ func ResumeTimer(c *fiber.Ctx) error {
 		})
 	}
 
+	tx := config.DB.Begin()
+
 	tracking.Status = "running"
 
-	if err := config.DB.Save(&tracking).Error; err != nil {
+	if err := tx.Save(&tracking).Error; err != nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -214,26 +242,30 @@ func ResumeTimer(c *fiber.Ctx) error {
 		StartTime:      time.Now(),
 	}
 
-	if err := config.DB.Create(&log).Error; err != nil {
+	if err := tx.Create(&log).Error; err != nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
 
+	tx.Commit()
+
 	return c.JSON(fiber.Map{
-		"message": "Timer resumed successfully",
+		"message":  "Timer resumed successfully",
+		"tracking": tracking,
 	})
 }
 
-// ==========================================
+// ======================================================
 // STOP TIMER
 // PATCH /time/:id/stop
-// ==========================================
+// ======================================================
 
 func StopTimer(c *fiber.Ctx) error {
 
 	trackingID, err := c.ParamsInt("id")
-	if err != nil {
+	if err != nil || trackingID <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid tracking ID",
 		})
@@ -253,14 +285,18 @@ func StopTimer(c *fiber.Ctx) error {
 		})
 	}
 
+	tx := config.DB.Begin()
+
 	if tracking.Status == "running" {
 
 		var log models.TimeLog
 
-		if err := config.DB.
+		err := tx.
 			Where("time_tracking_id = ? AND end_time = ?", tracking.ID, time.Time{}).
 			Order("id DESC").
-			First(&log).Error; err == nil {
+			First(&log).Error
+
+		if err == nil {
 
 			now := time.Now()
 
@@ -269,7 +305,12 @@ func StopTimer(c *fiber.Ctx) error {
 			log.EndTime = now
 			log.DurationSeconds = duration
 
-			config.DB.Save(&log)
+			if err := tx.Save(&log).Error; err != nil {
+				tx.Rollback()
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"error": err.Error(),
+				})
+			}
 
 			tracking.TotalSeconds += duration
 		}
@@ -277,27 +318,31 @@ func StopTimer(c *fiber.Ctx) error {
 
 	tracking.Status = "completed"
 
-	if err := config.DB.Save(&tracking).Error; err != nil {
+	if err := tx.Save(&tracking).Error; err != nil {
+		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
 
+	tx.Commit()
+
 	return c.JSON(fiber.Map{
 		"message":      "Timer stopped successfully",
 		"totalSeconds": tracking.TotalSeconds,
+		"tracking":     tracking,
 	})
 }
 
-// ==========================================
+// ======================================================
 // GET PROJECT TIME
 // GET /projects/:id/time
-// ==========================================
+// ======================================================
 
 func GetProjectTime(c *fiber.Ctx) error {
 
 	projectID, err := c.ParamsInt("id")
-	if err != nil {
+	if err != nil || projectID <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid project ID",
 		})
@@ -316,7 +361,6 @@ func GetProjectTime(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"tracking": nil,
 		})
-
 	}
 
 	if err != nil {
@@ -330,15 +374,15 @@ func GetProjectTime(c *fiber.Ctx) error {
 	})
 }
 
-// ==========================================
+// ======================================================
 // GET TIME LOGS
 // GET /projects/:id/time/logs
-// ==========================================
+// ======================================================
 
 func GetTimeLogs(c *fiber.Ctx) error {
 
 	projectID, err := c.ParamsInt("id")
-	if err != nil {
+	if err != nil || projectID <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid project ID",
 		})
@@ -358,7 +402,6 @@ func GetTimeLogs(c *fiber.Ctx) error {
 			"tracking": nil,
 			"logs":     []models.TimeLog{},
 		})
-
 	}
 
 	if err != nil {
@@ -380,9 +423,7 @@ func GetTimeLogs(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"tracking_id": tracking.ID,
-		"status":      tracking.Status,
-		"total_time":  tracking.TotalSeconds,
-		"logs":        logs,
+		"tracking": tracking,
+		"logs":     logs,
 	})
 }
