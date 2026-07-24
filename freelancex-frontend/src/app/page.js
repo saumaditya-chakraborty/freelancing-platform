@@ -8,21 +8,21 @@ export default function Home() {
 
       {/* Navbar */}
       <nav className="relative z-10 flex items-center justify-between px-8 py-6 border-b border-white/10 backdrop-blur-md">
-       <h1 className="text-5xl font-black tracking-wide">
-  <span
-    style={{
-      color: "cyan",
-    }}
-  >
-    Freelance
-  </span>
+        <h1 className="text-5xl font-black tracking-wide">
+          <span
+            style={{
+              color: "cyan",
+            }}
+          >
+            Freelance
+          </span>
 
-  <span
-    className="text-white"
-  >
-    X
-  </span>
-</h1>
+          <span
+            className="text-white"
+          >
+            X
+          </span>
+        </h1>
 
         <div className="flex gap-4">
           <Link
@@ -170,11 +170,62 @@ export default function Home() {
           </Link>
         </div>
       </section>
+      {/* ================= ADMIN ACCESS ================= */}
+
+      <section className="relative z-10 px-8 pb-24">
+
+        <div className="max-w-6xl mx-auto bg-gradient-to-r from-slate-900 via-gray-900 to-black border border-red-500/20 rounded-[40px] p-14">
+
+          <div className="flex flex-col md:flex-row items-center justify-between gap-10">
+
+            <div className="flex-1">
+
+              <span className="inline-block px-4 py-2 rounded-full bg-red-600/20 text-red-400 text-sm font-semibold">
+                ADMINISTRATOR ACCESS
+              </span>
+
+              <h2 className="mt-6 text-5xl font-black">
+                Administrator Console
+              </h2>
+
+              <p className="mt-5 text-gray-300 text-lg max-w-xl">
+                Access the secure administration console to manage users,
+                projects, proposals, platform statistics and moderation
+                tools.
+              </p>
+
+              <Link
+                href="/admin/login"
+                className="inline-block mt-8 px-8 py-4 rounded-2xl bg-red-600 hover:bg-red-700 transition font-semibold"
+              >
+                Open Admin Console →
+              </Link>
+
+            </div>
+
+            <div className="flex justify-center items-center">
+
+              <div className="w-48 h-48 rounded-full border border-red-500/30 bg-red-500/10 flex items-center justify-center">
+
+                <span className="text-8xl">
+                  🛡️
+                </span>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-white/10 py-8 text-center text-gray-500">
         © 2026 FreelanceX • Built with Next.js + Golang + PostgreSQL
       </footer>
+
     </main>
   );
 }
